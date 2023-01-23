@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link href="style.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script type="text/javascript" src="options.js"></script>
+    <script type="text/javascript" src="table-create.js"></script>
+    <script type="text/javascript" src="xml-convert.js"></script>
+    <script>
+        var reader = new FileReader();
+        var currentFile = '';
+        /* The name of the (XML File) root object */
+        let rootObject;
+        /* Data from the file as named array objects. (In the case of CSV), the single
+           object is the file base name.
+         */
+        let fileData;
+        /* The  */
+        let contentColumns = [];
+        let contentName;
+
+        function readFile(input, xmlCallback, csvCallback) {
+            currentFile = input.files[0];
+            reader.readAsText(currentFile);
+        }
+
+        reader.onload = function () {
+            let objectElem = document.getElementById("id-object");
+            let contentElem = document.getElementById("id-content");
+            hideDataTable();
+            if (currentFile.name.toLowerCase().endsWith(".csv")) {
+                contentName = decamelize(currentFile.name.replace(/\.[^/.]+$/, ""));
+                let data = d3.csvParse(reader.result);
+                fileData = {};
+                fileData[contentName] = data;
+                objectElem.textContent = "";
+                createColumnList(contentName, Object.keys(data[0]));
+
+                contentElem.replaceChildren([]);
+                contentElem.add(new Option(contentName, contentName));
+
+                populateColumns(contentName);
+            }
+            else {
+                var parser = new DOMParser();
+                var xmlDoc = parser.parseFromString(reader.result, "text/xml");
+                let data = xmlToJson(xmlDoc);
+
+                rootObject = Object.keys(data)[0];
+                objectElem.textContent = " - Object: " + rootObject;
+                fileData = data[rootObject];
+
+                contentElem.replaceChildren([]);
+                //contentElem.add(new Option('', ''));
+                let first;
+                for (var i = 0; i < Object.keys(fileData).length; ++i) {
+                    let name = Object.keys(fileData)[i];
+                    if (fileData[name].length > 0) {
+                        if (!first) first = name;
+                        contentElem.add(new Option(name, name));
+                        createColumnList(name, Object.keys(fileData[name][0]));
+                    }
+                }
+                if (first) {
+                    populateColumns(first);
+                }
+            }
+        };
+
+        reader.onerror = function () {
+            console.log(reader.error);
+        };
+
+        function createColumnList(name, columns) {
+            let list = [];
+            columns.forEach(function (column) {
+                list.push({ 'name': column, 'text': column });
+            });
+            contentColumns[name] = list;
+        }
+        function printHiding(elemId) {
+            var elem = document.getElementById(elemId);
+            elem.style = "display: none";
+            print();
+            elem.style = "display: block";
+        }
+
+        function populateFormat(elemId) {
+            var formElem = document.getElementById(elemId);
+            populateOptions(formElem, tableOptions, 'fmt-', false);
+        }
+
+        function getFormatOptions() {
+            return getOptions(tableOptions, 'fmt-');
+        }
+
+        function populateColumns(which, elemId) {
+            hideDataTable();
+
+            contentName = which;
+            var formElem = document.getElementById('id-columns');
+            populateOptions(formElem, contentColumns[contentName], 'col-', true);
+        }
+
+        function getColumnOptions(which) {
+            return getOptions(contentColumns[which], 'col-');
+        }
+
+        function showData(which, elem, format, columns, onClick) {
+            hideDataform();
+            contentName = which;
+
+            elem.replaceChildren();
+            if (which.length > 0) {
+                try {
+                    createTable(fileData[which], elem, which, columns,
+                        onClick, format);
+                } catch (error) {
+                    elem.textContent = 'Malformed file: ' + error.message;
+                }
+            }
+            else {
+                elem.textContent = 'No Content Selected';
+
+            }
+            showDataTable();
+        };
+
+        function detailForm(e) {
+            var t = e.target;
+
+            var formElem = document.getElementById("dataFormId");
+            populateForm(e.target.parentElement.src, contentName, formElem);
+            showDataform();
+        }
+
+        // Visibility
+        function showDataform() {
+            document.getElementById("id-data-form").style.display = "block";
+        }
+        function hideDataform() {
+            document.getElementById("id-data-form").style.display = "none";
+        }
+
+        function showDataTable() {
+            document.getElementById("id-data").style.display = "block";
+        }
+        function hideDataTable() {
+            hideDataform();
+            document.getElementById("id-data").style.display = "none";
+        }
+
+        // Form Load
+        document.addEventListener('DOMContentLoaded', function () {
+            hideDataform();
+            populateFormat('id-format');
+        });
+
+    </script>
+</head>
+
+<body>
+    <div id="config">
+        <h1>XML / CSV Reader
+            <span id="id-object"></span>
+        </h1>
+
+        <div id="config">
+            <input type="file" id="id-file" onchange="readFile(this)">
+
+            <label for="id-content">Content:</label>
+            <select id="id-content" onchange="populateColumns(this.value)" />
+            <input type="button" onclick="printHiding('config')" value="Hide Configuration and Print" />
+
+            <p id="tooltip-text">The tooltip text.</p>
+            <div class="group">Columns
+                <div id="id-columns" class="container"></div>
+            </div>
+            <div class="group">Format
+                <div id="id-format" class="container"></div>
+            </div>
+
+            <input type="button" onclick="showData(
+              document.getElementById('id-content').value,
+              document.getElementById('id-data'), 
+              getFormatOptions(), 
+              getColumnOptions(document.getElementById('id-content').value),
+              detailForm)" value="(re)Display)">
+        </div>
+    </div>
+    <form id="id-data-form" action="">
+        <fieldset id="id-data-form">
+            <div id="dataFormId"></div>
+            <input style="padding: 6px; float: right" type="button" value="Close" onclick="hideDataform()">
+        </fieldset>
+    </form>
+    <div id="id-data"></div>
+</body>
+
+</html>

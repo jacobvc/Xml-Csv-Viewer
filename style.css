@@ -1,0 +1,150 @@
+:root {
+  --body-background: #eee;
+  --border-color: black;
+  --table-border-color: #ddd;
+  --even-background: #ddd;
+  --field-background: rgba(220, 220, 220, 0.8);
+  --group-background: #eee;
+  --contained-background: #fcfcfc;
+  --thead-background: linear-gradient(#bbb, #ddd);
+}
+
+
+table {
+  font-family: arial, sans-serif;
+  width: 100%;
+  border-right: 1px solid var(--table-border-color);
+}
+
+td,
+th {
+  border-left: 1px solid var(--table-border-color);
+  border-top: 1px solid var(--table-border-color);
+  border-bottom: 1px solid var(--table-border-color);
+
+  text-align: left;
+  padding: 8px;
+  max-width: 20%;
+}
+
+thead {
+  background: var(--thead-background);
+  font-weight: 300;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.descending::after {
+  content: " \290A";
+}
+
+.ascending::after {
+  content: " \290B";
+}
+
+
+th {
+  text-align: center;
+}
+
+tr:nth-child(even) {
+  background-color: var(--even-background);
+}
+
+body {
+  padding: 8px;
+  background-color: var(--body-background);
+}
+
+form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 75%;
+  transform: translate(-50%, -50%);
+}
+
+fieldset {
+  padding: 5px;
+  /*  color: white;*/
+}
+
+fieldset label {
+  display: inline-block;
+  width: 100px;
+}
+
+fieldset input {
+  padding: 1px;
+  margin: 4px;
+  font-weight: bold;
+}
+
+fieldset {
+  /*  position: fixed;
+  display: block;
+*/
+  width: 100%;
+  height: 100%;
+  background-color: var(--field-background);
+  z-index: 2;
+  overflow-y: scroll;
+}
+
+.group {
+  background-color: var(--group-background);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px;
+  margin: 4px;
+}
+
+.container {
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+
+.contained {
+  background-color: var(--contained-background);
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  float: left;
+  width: 120px;
+  margin: 4px;
+}
+
+/* styling of the tooltip display */
+p#tooltip-text {
+  display: none;
+  position: absolute;
+  top: 60px;
+  z-index: 1;
+  background: cornsilk;
+  padding: 8px;
+  font-size: 1rem;
+  color: black;
+  border-radius: 2px;
+  animation: fadeIn 0.6s;
+}
+
+/* optional styling to add a "wedge" to the tooltip */
+p#tooltip-text:before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -8px;
+  border: 8px solid transparent;
+  border-top: 8px solid black;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
