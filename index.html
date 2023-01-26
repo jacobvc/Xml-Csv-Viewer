@@ -46,25 +46,15 @@
                 var parser = new DOMParser();
                 var xmlDoc = parser.parseFromString(reader.result, "text/xml");
                 let data = xmlToJson(xmlDoc);
+                fileData = {};
 
                 rootObject = Object.keys(data)[0];
                 objectElem.textContent = " - Object: " + rootObject;
-                fileData = data[rootObject];
+                data = data[rootObject];
 
                 contentElem.replaceChildren([]);
-                //contentElem.add(new Option('', ''));
-                let first;
-                for (var i = 0; i < Object.keys(fileData).length; ++i) {
-                    let name = Object.keys(fileData)[i];
-                    if (fileData[name].length > 0) {
-                        if (!first) first = name;
-                        contentElem.add(new Option(name, name));
-                        createColumnList(name, Object.keys(fileData[name][0]));
-                    }
-                }
-                if (first) {
-                    populateColumns(first);
-                }
+                resolveParts(contentElem, '', data);
+                populateColumns(contentElem.value);
             }
         };
 
@@ -72,10 +62,61 @@
             console.log(reader.error);
         };
 
+        /* (recursively) resolve the XML content so that all of the 
+           contents can be displayed using the table format
+         */unescape
+        function resolveParts(contentElem, ancestor, data) {
+            let newObj;
+            let newName = 'Document';
+
+            for (var i = 0; i < Object.keys(data).length; ++i) {
+                let key = Object.keys(data)[i];
+                if (key !== '@attributes') {
+                    let name = ancestor + key;
+                    if (Array.isArray(data[key])) {
+                        // An array is the normal expected
+                        // content to be displayed in a table
+                        fileData[name] = data[key];
+                        contentElem.add(new Option(name, name));
+                        createColumnList(name, Object.keys(data[key][0]));
+                    }
+                    else if (typeof (data[key]) === 'object') {
+                        // A field may have sub-arrays, recurse
+                        resolveParts(contentElem, name + ':', data[key]);
+                    }
+                    else {
+                        // Otherwise synthesize fields into a new
+                        // single element array (named Document if there 
+                        // is no ancestor)
+                        if (!newObj) {
+                            newObj = {};
+                            if (ancestor) {
+                                newName = ancestor;
+                            }
+                            if (fileData[newName]) {
+                                newObj = fileData[newName];
+                            }
+                            else {
+                                fileData[newName] = [newObj];
+                                contentElem.add(new Option(newName, newName));
+                            }
+                        }
+                        newObj[key] = data[key];
+                    }
+                }
+            }
+            if (newObj) {
+                // If an object was synthesized, create a columnlist for it
+                createColumnList(newName, Object.keys(newObj));
+            }
+        }
+
         function createColumnList(name, columns) {
             let list = [];
             columns.forEach(function (column) {
-                list.push({ 'name': column, 'text': column });
+                if (column !== '@attributes') {
+                    list.push({ 'name': column, 'text': column });
+                }
             });
             contentColumns[name] = list;
         }
@@ -100,7 +141,7 @@
 
             contentName = which;
             var formElem = document.getElementById('id-columns');
-            populateOptions(formElem, contentColumns[contentName], 'col-', true);
+            populateOptions(formElem, contentColumns[which], 'col-', true);
         }
 
         function getColumnOptions(which) {
