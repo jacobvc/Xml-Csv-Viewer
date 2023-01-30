@@ -36,7 +36,9 @@ let expenseCategories = "EXPENSE CATEGORIES";
 function getJsonColumns(item) {
     var columns = [];
     for (var name in item) {
-        columns.push(name);
+        if (name !== '@attributes') {
+            columns.push(name);
+        }
     }
     return columns;
 }
@@ -71,7 +73,16 @@ function populateForm(item, title, elem) {
     var columns = getJsonColumns(item);
     var count = 0;
     columns.forEach(function (name) {
-        addFormField(elem, name, decamelize(name), item[name]);
+        if (typeof(item[name]) === 'object') {
+            var labelElem = document.createElement('label');
+            labelElem.htmlFor = name;
+            labelElem.textContent = decamelize(name);
+            elem.appendChild(labelElem);
+            createOnlyTable(item[name][Object.keys(item[name])[0]], elem, [], detailForm, []);
+        }
+        else {
+            addFormField(elem, name, decamelize(name), item[name]);
+        }
         if ((count++ & 1) == 1) {
             elem.appendChild(document.createElement("br"));
         }
@@ -112,7 +123,9 @@ function createTable(data, elem, title, columns, onclick, options) {
     var titleElem = document.createElement('h2');
     titleElem.textContent = title;
     elem.appendChild(titleElem);
-
+    createOnlyTable(data, elem, columns, onclick, options)
+}
+function createOnlyTable(data, elem, columns, onclick, options) {
     var table = document.createElement('table');
     elem.appendChild(table);
     if (columns.length == 0 && data.length > 0) {
@@ -202,15 +215,18 @@ function addTableData(data, columns, onclick, options) {
                 value = '';
             }
             td.dataset.propName = name;
-            var date = new Date(value)
-            if (date.getTime() === date.getTime() && value.indexOf('-') > 0) {
-                if (date.getFullYear() > 1) {
-                    td.textContent = date.toDateString();
-                }
+            if (typeof(value) === 'object') {
+                value = '[OBJECT]';
             }
             else {
-                td.textContent = value;
+                var date = new Date(value)
+                if (date.getTime() === date.getTime() && value.indexOf('-') > 0) {
+                    if (date.getFullYear() > 1) {
+                        value = date.toDateString();
+                    }
+                }
             }
+            td.textContent = value;
             tr.appendChild(td)
             ++colNum;
         });
