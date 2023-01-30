@@ -73,7 +73,7 @@ function populateForm(item, title, elem) {
     var columns = getJsonColumns(item);
     var count = 0;
     columns.forEach(function (name) {
-        if (typeof(item[name]) === 'object') {
+        if (typeof (item[name]) === 'object') {
             var labelElem = document.createElement('label');
             labelElem.htmlFor = name;
             labelElem.textContent = decamelize(name);
@@ -119,19 +119,21 @@ function addFormField(elem, name, label, value) {
     TABLE
 
 */
-function createTable(data, elem, title, columns, onclick, options) {
+function createTable(data, elem, title, columns, noHeader, onclick, options) {
     var titleElem = document.createElement('h2');
     titleElem.textContent = title;
     elem.appendChild(titleElem);
-    createOnlyTable(data, elem, columns, onclick, options)
+    createOnlyTable(data, elem, columns, noHeader, onclick, options)
 }
-function createOnlyTable(data, elem, columns, onclick, options) {
+function createOnlyTable(data, elem, columns, noHeader, onclick, options) {
     var table = document.createElement('table');
     elem.appendChild(table);
     if (columns.length == 0 && data.length > 0) {
         columns = getJsonColumns(data[0]);
     }
-    table.appendChild(createTableColumns(data, table, columns, options));
+    if (!noHeader) {
+        table.appendChild(createTableColumns(data, table, columns, options));
+    }
     table.appendChild(addTableData(data, columns, onclick, options));
 }
 
@@ -215,7 +217,7 @@ function addTableData(data, columns, onclick, options) {
                 value = '';
             }
             td.dataset.propName = name;
-            if (typeof(value) === 'object') {
+            if (typeof (value) === 'object') {
                 value = '[OBJECT]';
             }
             else {

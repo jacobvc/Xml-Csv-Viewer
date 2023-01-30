@@ -9,6 +9,7 @@
     <script type="text/javascript" src="xml-convert.js"></script>
     <script>
         var reader = new FileReader();
+        let noCsvHeader = false;
         var currentFile = '';
         /* The name of the (XML File) root object */
         let rootObject;
@@ -20,19 +21,29 @@
         let contentColumns = [];
         let contentName;
 
-        function readFile(input, xmlCallback, csvCallback) {
+        function readFile(id, xmlCallback, csvCallback) {
+            let input = document.getElementById(id);
             currentFile = input.files[0];
             reader.readAsText(currentFile);
         }
 
         reader.onload = function () {
+            noCsvHeader = false;
             let objectElem = document.getElementById("id-object");
             let contentElem = document.getElementById("id-content");
             hideDataTable();
             if (currentFile.name.toLowerCase().endsWith(".csv")) {
                 contentName = decamelize(currentFile.name.replace(/\.[^/.]+$/, ""));
-                let data = d3.csvParse(reader.result);
                 fileData = {};
+                let data;
+                let noHeaderElem = document.getElementById("id-no-header");
+                if (noHeaderElem && noHeaderElem.checked) {
+                    data = d3.csvParseRows(reader.result);
+                    noCsvHeader = true;
+                }
+                else {
+                    data = d3.csvParse(reader.result);
+                }
                 fileData[contentName] = data;
                 objectElem.textContent = "";
                 createColumnList(contentName, Object.keys(data[0]));
@@ -156,7 +167,7 @@
             if (which.length > 0) {
                 try {
                     createTable(fileData[which], elem, which, columns,
-                        onClick, format);
+                        noCsvHeader, onClick, format);
                 } catch (error) {
                     elem.textContent = 'Malformed file: ' + error.message;
                 }
@@ -208,9 +219,12 @@
         </h1>
 
         <div id="config">
-            <input type="file" id="id-file" onchange="readFile(this)">
+            <input type="file" id="id-file">
+            <input type="button" onclick="readFile('id-file')" value="Open" />
 
-            <label for="id-content">Content:</label>
+            <label for="id-no-header">No CSV header</label>
+            <input type="checkbox" id="id-no-header"">
+            <label for=" id-content"> - Content:</label>
             <select id="id-content" onchange="populateColumns(this.value)" />
             <input type="button" onclick="printHiding('config')" value="Hide Configuration and Print" />
 
