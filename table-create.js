@@ -78,7 +78,7 @@ function populateForm(item, title, elem) {
             labelElem.htmlFor = name;
             labelElem.textContent = decamelize(name);
             elem.appendChild(labelElem);
-            createOnlyTable(item[name][Object.keys(item[name])[0]], elem, [], detailForm, []);
+            createOnlyTable(item[name][Object.keys(item[name])[0]], elem, [], false, detailForm, []);
         }
         else {
             addFormField(elem, name, decamelize(name), item[name]);
@@ -120,6 +120,10 @@ function addFormField(elem, name, label, value) {
 
 */
 function createTable(data, elem, title, columns, noHeader, onclick, options) {
+    if (data.length == 1){
+        populateForm(data[0], title, elem);
+        return;
+    }
     var titleElem = document.createElement('h2');
     titleElem.textContent = title;
     elem.appendChild(titleElem);

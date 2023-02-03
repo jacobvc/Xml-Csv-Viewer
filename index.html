@@ -221,11 +221,11 @@
         <div id="config">
             <span style="border:1px solid; padding: 4px; 
               margin: 5px; border-radius: 4px">
-                <input type="file" id="id-file">
+                <input type="file" id="id-file" onchange="readFile('id-file')">
                 <input type="button" onclick="readFile('id-file')" value="Open" />
 
                 <label for="id-no-header">No CSV header</label>
-                <input type="checkbox" id="id-no-header"">
+                <input type="checkbox" id="id-no-header">
             </span>
             <label for=" id-content"> Content:</label>
                 <select id="id-content" onchange="populateColumns(this.value)" />
