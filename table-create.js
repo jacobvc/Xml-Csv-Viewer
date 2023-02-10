@@ -7,12 +7,16 @@ let sorting = "sorting";
 
 let tableOptions = [
     {
+        'name': incomeExpense, 'text': 'Indent inside Income/Expense rows',
+        'description': 'Ident all rows that do not start with "Income Category" or "Expense Category"'
+    },
+    {
         'name': nested, 'text': 'Indent ":" separated names',
         'description': 'Indent colon separated names as a hierarchy'
     },
     {
-        'name': incomeExpense, 'text': 'Indent inside Income/Expense rows',
-        'description': 'Ident all rows that do not start with "Income Category" or "Expense Category"'
+        'name': subtotal, 'text': 'Append Subtotals', 'description':
+            'Append subtotal rows (for indented numeric columns)'
     },
     {
         'name': blankZeros, 'text': 'Blank zero values',
@@ -120,7 +124,7 @@ function addFormField(elem, name, label, value) {
 
 */
 function createTable(data, elem, title, columns, noHeader, onclick, options) {
-    if (data.length == 1){
+    if (data.length == 1) {
         populateForm(data[0], title, elem);
         return;
     }
@@ -184,11 +188,44 @@ function createTableColumns(data, table, columns, options) {
     return thead;
 }
 
+function appendSummary(tr, indent, data, columns, start, end) {
+    var td = document.createElement('td');
+    td.style.left = indentStyle(indent);
+    td.style.position = 'relative';
+    td.textContent = "Subtotal";
+    tr.appendChild(td)
+
+    for (var col = 1; col < columns.length; ++col) {
+        let num = 0;
+        let result = "";
+        for (var i = start; i < end; i++) {
+            let value = data[i][columns[col]];
+            if (isNaN(value)) {
+                result = "";
+                break;
+            }
+            else {
+                num += Number(value);
+                result = num + "";
+            }
+        }
+        td = document.createElement('td');
+        td.style.textAlign = 'right';
+        td.textContent = result;
+        tr.appendChild(td)
+    }
+}
+
 function addTableData(data, columns, onclick, options) {
     var tbody = document.createElement('tbody');
 
     var frag = document.createDocumentFragment(),
         row, cell;
+
+    let indent = 0;
+    let rootIndent = 0;
+    let newIndent = -1;
+    let startRows = [];
 
     for (var i = 0; i < data.length; i++) {
         var tr = document.createElement('tr');
@@ -197,27 +234,49 @@ function addTableData(data, columns, onclick, options) {
         let colNum = 0;
         columns.forEach(function (name) {
             let value = data[i][name];
-            let indent = 0;
             var td = document.createElement('td');
 
             if (colNum == 0) {
                 if (options.indexOf(incomeExpense) >= 0
                     && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
                     && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-                    indent = 1;
+                    // Indent inside income/expense
+                    rootIndent = 1;
+                }
+                else {
+                    rootIndent = 0;
                 }
                 if (options.indexOf(nested) >= 0) {
+                    // Indent nested fields
                     let fields = value.split(':');
-                    indent += fields.length - 1;
-                    value = fields[fields.length - 1];
+                    newIndent = fields.length - 1;
+                    value = fields[newIndent];
+
+                    while (newIndent > indent) {
+                        ++indent;
+                        startRows[indent] = i;
+                    }
+ 
+                    while (options.indexOf(subtotal) >= 0 && newIndent < indent) {
+                        appendSummary(tr,  rootIndent + indent, data, columns, startRows[indent], i);
+                        frag.appendChild(tr);
+                        tr = document.createElement('tr');
+                        --indent;
+                    }
+                    indent = newIndent;
+                }
+                if (rootIndent + indent > 0) {
+                    // 
+                    td.style.left = indentStyle(rootIndent + indent);
+                    td.style.position = 'relative';
                 }
             }
-            if (indent > 0) {
-                td.style.left = indentStyle(indent);
-                td.style.position = 'relative';
+            else {
+                // All but first column align right
+                td.style.textAlign = 'right';
             }
-            if (options.indexOf(blankZeros) >= 0
-                && value.trim() == '0') {
+            if (options.indexOf(blankZeros) >= 0 && value.trim() == '0') {
+                // Blank zero values
                 value = '';
             }
             td.dataset.propName = name;
