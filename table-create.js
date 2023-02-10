@@ -128,7 +128,7 @@ function createTable(data, elem, title, columns, noHeader, onclick, options) {
         populateForm(data[0], title, elem);
         return;
     }
-    var titleElem = document.createElement('h2');
+    var titleElem = document.createElement('h3');
     titleElem.textContent = title;
     elem.appendChild(titleElem);
     createOnlyTable(data, elem, columns, noHeader, onclick, options)
