@@ -203,7 +203,7 @@ function nonFirstColumn(tr, value) {
     tr.appendChild(td)
 }
 
-function appendSummary(tr, indent, data, columns, start, end) {
+function appendSummary(tr, indent, data, columns, start, end, options) {
     firstColumn(tr, indent, "Subtotal");
     for (var col = 1; col < columns.length; ++col) {
         let num = 0;
@@ -219,7 +219,13 @@ function appendSummary(tr, indent, data, columns, start, end) {
                 result = num + "";
             }
         }
-        nonFirstColumn(tr, result);
+        if (options.indexOf(blankZeros) >= 0 && num == 0) {
+            // Blank zero values
+            nonFirstColumn(tr, '');
+        }
+        else {
+            nonFirstColumn(tr, result);
+        }
     }
 }
 
@@ -233,6 +239,7 @@ function addTableData(data, columns, onclick, options) {
     let rootIndent = 0;
     let newIndent = -1;
     let startRows = [];
+    let priorFields = [];
 
     for (var i = 0; i < data.length; i++) {
         var tr = document.createElement('tr');
@@ -249,6 +256,27 @@ function addTableData(data, columns, onclick, options) {
                     let fields = value.split(':');
                     newIndent = fields.length - 1;
 
+                    let commonParent = 0;
+                    for (commonParent = 0;
+                        commonParent < fields.length
+                        && commonParent < priorFields.length; ++commonParent) {
+                        if (fields[commonParent] !== priorFields[commonParent]) {
+                            break;
+                        }
+                    }
+
+                    // Append summary for each intervening indent
+                    while (commonParent < indent) {
+                        // Subtotal only if more than one line
+                        if (options.indexOf(subtotal) >= 0 && i - startRows[indent] > 1) {
+                            appendSummary(tr, rootIndent + indent, data, columns, 
+                              startRows[indent], i, options);
+                            frag.appendChild(tr);
+                            tr = document.createElement('tr');
+                        }
+                        --indent;
+                    }
+
                     if (newIndent > indent) {
                         value = '';
                         while (newIndent > indent + 1) {
@@ -258,7 +286,7 @@ function addTableData(data, columns, onclick, options) {
                             for (var col = 1; col < columns.length; ++col) {
                                 nonFirstColumn(tr, '');
                             }
-                                frag.appendChild(tr);
+                            frag.appendChild(tr);
                             tr = document.createElement('tr');
                         }
                         // remember start row for each intervening indentation
@@ -269,17 +297,8 @@ function addTableData(data, columns, onclick, options) {
                     else {
                         value = fields[newIndent];
                     }
-                    // Append summary for each intervening indent
-                    if (i - startRows[indent] > 1) {
-                        // Subtotal only if more than one line
-                        while (options.indexOf(subtotal) >= 0 && newIndent < indent) {
-                            appendSummary(tr, rootIndent + indent, data, columns, startRows[indent], i);
-                            frag.appendChild(tr);
-                            tr = document.createElement('tr');
-                            --indent;
-                        }
-                    }
-                    indent = newIndent;
+                    priorFields = fields;
+
                     // Set rootIndent AFTER appending summary using prior indentation
                     if (options.indexOf(incomeExpense) >= 0
                         && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
@@ -292,7 +311,7 @@ function addTableData(data, columns, onclick, options) {
                     }
                 }
                 if (rootIndent + indent > 0) {
-                    // 
+                    // Apply first column indentation
                     td.style.left = indentStyle(rootIndent + indent);
                     td.style.position = 'relative';
                 }
