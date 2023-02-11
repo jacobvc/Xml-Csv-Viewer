@@ -188,13 +188,23 @@ function createTableColumns(data, table, columns, options) {
     return thead;
 }
 
-function appendSummary(tr, indent, data, columns, start, end) {
+function firstColumn(tr, indent, colName) {
     var td = document.createElement('td');
     td.style.left = indentStyle(indent);
     td.style.position = 'relative';
-    td.textContent = "Subtotal";
+    td.textContent = colName;
     tr.appendChild(td)
+}
 
+function nonFirstColumn(tr, value) {
+    var td = document.createElement('td');
+    td.style.textAlign = 'right';
+    td.textContent = value;
+    tr.appendChild(td)
+}
+
+function appendSummary(tr, indent, data, columns, start, end) {
+    firstColumn(tr, indent, "Subtotal");
     for (var col = 1; col < columns.length; ++col) {
         let num = 0;
         let result = "";
@@ -209,10 +219,7 @@ function appendSummary(tr, indent, data, columns, start, end) {
                 result = num + "";
             }
         }
-        td = document.createElement('td');
-        td.style.textAlign = 'right';
-        td.textContent = result;
-        tr.appendChild(td)
+        nonFirstColumn(tr, result);
     }
 }
 
@@ -237,33 +244,52 @@ function addTableData(data, columns, onclick, options) {
             var td = document.createElement('td');
 
             if (colNum == 0) {
-                if (options.indexOf(incomeExpense) >= 0
-                    && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
-                    && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-                    // Indent inside income/expense
-                    rootIndent = 1;
-                }
-                else {
-                    rootIndent = 0;
-                }
                 if (options.indexOf(nested) >= 0) {
                     // Indent nested fields
                     let fields = value.split(':');
                     newIndent = fields.length - 1;
-                    value = fields[newIndent];
 
-                    while (newIndent > indent) {
+                    if (newIndent > indent) {
+                        value = '';
+                        while (newIndent > indent + 1) {
+                            ++indent;
+                            startRows[indent] = i;
+                            firstColumn(tr, rootIndent + indent, fields[indent]);
+                            for (var col = 1; col < columns.length; ++col) {
+                                nonFirstColumn(tr, '');
+                            }
+                                frag.appendChild(tr);
+                            tr = document.createElement('tr');
+                        }
+                        // remember start row for each intervening indentation
                         ++indent;
+                        value = fields[indent];
                         startRows[indent] = i;
                     }
- 
-                    while (options.indexOf(subtotal) >= 0 && newIndent < indent) {
-                        appendSummary(tr,  rootIndent + indent, data, columns, startRows[indent], i);
-                        frag.appendChild(tr);
-                        tr = document.createElement('tr');
-                        --indent;
+                    else {
+                        value = fields[newIndent];
+                    }
+                    // Append summary for each intervening indent
+                    if (i - startRows[indent] > 1) {
+                        // Subtotal only if more than one line
+                        while (options.indexOf(subtotal) >= 0 && newIndent < indent) {
+                            appendSummary(tr, rootIndent + indent, data, columns, startRows[indent], i);
+                            frag.appendChild(tr);
+                            tr = document.createElement('tr');
+                            --indent;
+                        }
                     }
                     indent = newIndent;
+                    // Set rootIndent AFTER appending summary using prior indentation
+                    if (options.indexOf(incomeExpense) >= 0
+                        && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
+                        && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+                        // Indent inside income/expense
+                        rootIndent = 1;
+                    }
+                    else {
+                        rootIndent = 0;
+                    }
                 }
                 if (rootIndent + indent > 0) {
                     // 
