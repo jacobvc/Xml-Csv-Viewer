@@ -16,7 +16,7 @@ let tableOptions = [
     },
     {
         'name': subtotal, 'text': 'Append Subtotals', 'description':
-            'Append subtotal rows (for indented numeric columns)'
+            'Append subtotal rows (to indented numeric columns)'
     },
     {
         'name': blankZeros, 'text': 'Blank zero values',
@@ -203,7 +203,7 @@ function nonFirstColumn(tr, value) {
     tr.appendChild(td)
 }
 
-function appendSummary(tr, indent, data, columns, start, end, options) {
+function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
     firstColumn(tr, indent, "Subtotal");
     for (var col = 1; col < columns.length; ++col) {
         let num = 0;
@@ -235,7 +235,7 @@ function addTableData(data, columns, onclick, options) {
     var frag = document.createDocumentFragment(),
         row, cell;
 
-    let indent = 0;
+    let indent = -1;
     let rootIndent = 0;
     let newIndent = -1;
     let startRows = [];
@@ -256,30 +256,36 @@ function addTableData(data, columns, onclick, options) {
                     let fields = value.split(':');
                     newIndent = fields.length - 1;
 
-                    let commonParent = 0;
-                    for (commonParent = 0;
-                        commonParent < fields.length
-                        && commonParent < priorFields.length; ++commonParent) {
-                        if (fields[commonParent] !== priorFields[commonParent]) {
+                    // Find index of first difference
+                    let firstDiff = 0;
+                    for (firstDiff = 0;
+                        firstDiff < fields.length
+                        && firstDiff < priorFields.length; ++firstDiff) {
+                        if (fields[firstDiff] !== priorFields[firstDiff]) {
                             break;
                         }
                     }
 
-                    // Append summary for each intervening indent
-                    while (commonParent < indent) {
-                        // Subtotal only if more than one line
-                        if (options.indexOf(subtotal) >= 0 && i - startRows[indent] > 1) {
-                            appendSummary(tr, rootIndent + indent, data, columns, 
-                              startRows[indent], i, options);
-                            frag.appendChild(tr);
-                            tr = document.createElement('tr');
+                    if (indent > firstDiff) {
+                        // Append Subtotal for each 'ended' indent
+                        while (indent > firstDiff) {
+                            // Subtotal only if more than one line
+                            if (options.indexOf(subtotal) >= 0 && i - startRows[indent] > 1) {
+                                appendNumericSubtotal(tr, rootIndent + indent, data, columns,
+                                    startRows[indent], i, options);
+                                frag.appendChild(tr);
+                                tr = document.createElement('tr');
+                            }
+                            --indent;
                         }
+                        // And set current indent to first NOT different
                         --indent;
                     }
 
                     if (newIndent > indent) {
                         value = '';
                         while (newIndent > indent + 1) {
+                            // Add missing header rows between indent and new indent
                             ++indent;
                             startRows[indent] = i;
                             firstColumn(tr, rootIndent + indent, fields[indent]);
@@ -289,7 +295,7 @@ function addTableData(data, columns, onclick, options) {
                             frag.appendChild(tr);
                             tr = document.createElement('tr');
                         }
-                        // remember start row for each intervening indentation
+                        // remember start row and set value
                         ++indent;
                         value = fields[indent];
                         startRows[indent] = i;
@@ -299,7 +305,7 @@ function addTableData(data, columns, onclick, options) {
                     }
                     priorFields = fields;
 
-                    // Set rootIndent AFTER appending summary using prior indentation
+                    // Set rootIndent AFTER appending Subtotal using prior indentation
                     if (options.indexOf(incomeExpense) >= 0
                         && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
                         && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
@@ -311,7 +317,7 @@ function addTableData(data, columns, onclick, options) {
                     }
                 }
                 if (rootIndent + indent > 0) {
-                    // Apply first column indentation
+                    // Apply visual indentation
                     td.style.left = indentStyle(rootIndent + indent);
                     td.style.position = 'relative';
                 }
