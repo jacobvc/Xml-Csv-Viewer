@@ -1,0 +1,79 @@
+import sys
+import os
+import getopt
+
+help = '''
+Create a standalone html file, starting with a working html
+file and one or more .js and .css files. Exclude the references
+to those files and embed them by inserting the .js files 
+contents before </script> and the .css files before </style>
+
+usage: combine.py [-h][-o outputfilename] inputfilename js-or-css-filename[..]
+'''
+
+outfilename = 'combined.html'
+outfile = ()
+
+def insert_file(inputs, type):
+    for filename in inputs:
+        root, ext = os.path.splitext(filename)
+        if ext == type:
+            with open(filename, 'r') as file:
+                outfile.write(file.read())
+
+def combine(files):
+    # Open text file in read only mode
+    with open(files[0], 'r') as file:
+        data = ''
+        excluding = False
+        Lines = file.readlines()
+        
+        count = 0
+
+    inputs = files[1:]
+
+    for line in Lines:
+        # read the file line by line, excluding the EXCLUDE sections
+        count += 1
+        if line.lstrip().startswith('</script'):
+            insert_file(inputs, ".js")
+
+        elif line.lstrip().startswith('</style'):
+            insert_file(inputs, ".css")
+        else:
+            for filename in inputs:
+                if (line.find(filename) >= 0):
+                    line = ''
+
+        outfile.write(line)
+
+# process command line arguments
+arglist = sys.argv[1:]
+
+# Options
+options = "ho:"
+
+# Long options
+long_options = ["Help", "My_file", "Output="]
+
+try:
+    # Parsing argument
+    args, values = getopt.getopt(arglist, options, long_options)
+    
+    # checking each argument
+    for arg, argv in args:
+
+        if arg in ("-h", "--Help"):
+            print (help)
+            
+        elif arg in ("-o", "--Output"):
+            print (("Output file: % s") % (argv))
+            outfilename = argv
+
+    outfile = open(outfilename, 'w')
+    root, ext = os.path.splitext(outfilename)
+    combine(values)
+            
+except getopt.error as err:
+    # output error, and return with an error code
+    print (str(err))
