@@ -75,13 +75,13 @@ function populateOptions(containerElem, list, scope, isChecked) {
    are the same values used for populateOptions().
  */
 function getOptions(list, scope) {
-    let checked = [];
+    let checked = {};
     if (list) {
         list.forEach(function (item) {
             let idPart = _createHtmlId(scope + item.name);
             var elem = document.getElementById('id-' + idPart);
             if (elem && elem.checked) {
-                checked.push(elem.name);
+                checked[elem.name] = elem.name;
             }
         });
     }

@@ -151,7 +151,7 @@ function createTableColumns(data, table, columns, options) {
     if (data.length > 0) {
         var tr;
         tr = document.createElement('tr');
-        columns.forEach(function (name) {
+        Object.keys(columns).forEach(function (name) {
             var th = document.createElement('th');
             th.textContent = decamelize(name);
             tr.append(th);
@@ -159,7 +159,7 @@ function createTableColumns(data, table, columns, options) {
         thead.appendChild(tr);
     }
 
-    if (options.indexOf(sorting) >= 0) {
+    if (sorting in options) {
         thead.addEventListener('click', function (e) {
             var t = e.target;
 
@@ -205,28 +205,30 @@ function nonFirstColumn(tr, value) {
 
 function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
     firstColumn(tr, indent, "Subtotal");
-    for (var col = 1; col < columns.length; ++col) {
-        let num = 0;
-        let result = "";
-        for (var i = start; i < end; i++) {
-            let value = data[i][columns[col]];
-            if (isNaN(value)) {
-                result = "";
-                break;
+    Object.keys(columns).forEach(function (key, col) {
+        if (col > 0) { // Already did firstColumn
+            let num = 0;
+            let result = "";
+            for (var i = start; i < end; i++) {
+                let value = data[i][key];
+                if (isNaN(value)) {
+                    result = "";
+                    break;
+                }
+                else {
+                    num += Number(value);
+                    result = num + "";
+                }
+            }
+            if (blankZeros in options && num == 0) {
+                // Blank zero values
+                nonFirstColumn(tr, '');
             }
             else {
-                num += Number(value);
-                result = num + "";
+                nonFirstColumn(tr, result);
             }
         }
-        if (options.indexOf(blankZeros) >= 0 && num == 0) {
-            // Blank zero values
-            nonFirstColumn(tr, '');
-        }
-        else {
-            nonFirstColumn(tr, result);
-        }
-    }
+    });
 }
 
 function addTableData(data, columns, onclick, options) {
@@ -246,12 +248,12 @@ function addTableData(data, columns, onclick, options) {
         tr.src = data[i];
 
         let colNum = 0;
-        columns.forEach(function (name) {
+        Object.keys(columns).forEach(function (name) {
             let value = data[i][name];
             var td = document.createElement('td');
 
             if (colNum == 0) {
-                if (options.indexOf(nested) >= 0) {
+                if (nested in options) {
                     // Indent nested fields
                     let fields = value.split(':');
                     newIndent = fields.length - 1;
@@ -270,7 +272,7 @@ function addTableData(data, columns, onclick, options) {
                         // Append Subtotal for each 'ended' indent
                         while (indent > firstDiff) {
                             // Subtotal only if more than one line
-                            if (options.indexOf(subtotal) >= 0 && i - startRows[indent] > 1) {
+                            if (subtotal in options && i - startRows[indent] > 1) {
                                 appendNumericSubtotal(tr, rootIndent + indent, data, columns,
                                     startRows[indent], i, options);
                                 frag.appendChild(tr);
@@ -304,17 +306,20 @@ function addTableData(data, columns, onclick, options) {
                         value = fields[newIndent];
                     }
                     priorFields = fields;
+                }
+                else {
+                    indent = 0;
+                }
 
-                    // Set rootIndent AFTER appending Subtotal using prior indentation
-                    if (options.indexOf(incomeExpense) >= 0
-                        && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
-                        && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-                        // Indent inside income/expense
-                        rootIndent = 1;
-                    }
-                    else {
-                        rootIndent = 0;
-                    }
+                // Set rootIndent AFTER appending Subtotal using prior indentation
+                if (incomeExpense in options
+                    && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
+                    && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+                    // Indent inside income/expense
+                    rootIndent = 1;
+                }
+                else {
+                    rootIndent = 0;
                 }
                 if (rootIndent + indent > 0) {
                     // Apply visual indentation
@@ -326,7 +331,7 @@ function addTableData(data, columns, onclick, options) {
                 // All but first column align right
                 td.style.textAlign = 'right';
             }
-            if (options.indexOf(blankZeros) >= 0 && value.trim() == '0') {
+            if (blankZeros in options && value.trim() == '0') {
                 // Blank zero values
                 value = '';
             }
