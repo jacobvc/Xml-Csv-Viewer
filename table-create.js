@@ -47,6 +47,17 @@ function getJsonColumns(item) {
     return columns;
 }
 
+function getJsonColumnNames(item) {
+    var columns = [];
+    for (var name in item) {
+        if (name !== '@attributes') {
+            columns[name] = name;
+        }
+    }
+    return columns;
+}
+
+
 function decamelize(name) {
     var out = name.substr(0, 1).toUpperCase();
     for (var i = 1; i < name.length; ++i) {
@@ -137,7 +148,7 @@ function createOnlyTable(data, elem, columns, noHeader, onclick, options) {
     var table = document.createElement('table');
     elem.appendChild(table);
     if (columns.length == 0 && data.length > 0) {
-        columns = getJsonColumns(data[0]);
+        columns = getJsonColumnNames(data[0]);
     }
     if (!noHeader) {
         table.appendChild(createTableColumns(data, table, columns, options));
