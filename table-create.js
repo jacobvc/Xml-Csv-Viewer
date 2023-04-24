@@ -297,21 +297,24 @@ function addTableData(data, columns, onclick, options) {
 
                     if (newIndent > indent) {
                         value = '';
+                        // remember start row and set value
+                        ++indent;
+                        value = fields[indent];
+                        // Prior row (heading) is the subtotal start row
+                        startRows[indent] = i - 1;
                         while (newIndent > indent + 1) {
-                            // Add missing header rows between indent and new indent
-                            ++indent;
+                            // This row is the subtotal start row (the heading is synthesized)
                             startRows[indent] = i;
                             firstColumn(tr, rootIndent + indent, fields[indent]);
                             for (var col = 1; col < columns.length; ++col) {
                                 nonFirstColumn(tr, '');
                             }
+                            ++indent;
+
+                            // Add missing header row
                             frag.appendChild(tr);
                             tr = document.createElement('tr');
                         }
-                        // remember start row and set value
-                        ++indent;
-                        value = fields[indent];
-                        startRows[indent] = i;
                     }
                     else {
                         value = fields[newIndent];
