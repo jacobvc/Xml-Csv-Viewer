@@ -17,11 +17,12 @@
        object is the file base name.
      */
     let fileData;
-    /* The  */
-    let contentColumns = [];
+    /* Name of selected content */
     let contentName;
+    /* Column names in selected content */
+    let contentColumns = [];
 
-    function readFile(id, xmlCallback, csvCallback) {
+    function readFile(id) {
       let input = document.getElementById(id);
       currentFile = input.files[0];
       reader.readAsText(currentFile);
@@ -234,11 +235,12 @@
 
     <div id="config">
       <span class="input-span">
-        <input type="file" id="id-file" onchange="readFile('id-file')">
+        <input type="file" id="id-file" accept="text/csv,text/xml" onclick="type=''; type='file';" onchange="readFile('id-file')">
 
         <label for="id-no-header">No CSV header</label>
         <input type="checkbox" id="id-no-header">
       </span>
+
       <label for=" id-content"> Content:</label>
       <select id="id-content" onchange="populateColumns(this.value)"></select>
       <input type="button" onclick="printHiding('config')" value="Hide Configuration and Print" />
