@@ -4,6 +4,10 @@
 <head>
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script>
+    var title = 'XML / CSV Reader';
+    var revision = '1.0';
+    var revisionstring = title + ', Revision ' + revision;
+	
     let noCsvHeader = false;
 
     var pageheadingSettings = 'pageheadingSettings';
@@ -257,13 +261,17 @@
     document.addEventListener('DOMContentLoaded', function () {
       hideDataform();
       populateFormatOptions('id-format');
-      var pageheadingInpElem = document.getElementById('pageheading');
-      if (pageheadingInpElem) {
-        pageheadingInpElem.value = localStorage.getItem(pageheadingSettings)
-      }
-      var dodate = document.getElementById('printed-on');
-      dodate.checked = JSON.parse(localStorage.getItem('printdate'));
+      var elem = document.getElementById('pageheading');
+      elem.value = localStorage.getItem(pageheadingSettings)
 
+      elem = document.getElementById('printed-on');
+      elem.checked = JSON.parse(localStorage.getItem('printdate'));
+
+      elem = document.getElementById('title');
+      elem.innerHTML = title + elem.innerHTML;
+
+      elem = document.getElementById('revision');
+      elem.innerText = revisionstring;
     });
 
 "use strict";
@@ -1031,7 +1039,7 @@ p#tooltip-text:before {
 
 <body>
   <div id="config">
-    <h1>XML / CSV Reader
+    <h1 id="title">
       <span id="id-object"></span>
     </h1>
 
@@ -1071,6 +1079,7 @@ p#tooltip-text:before {
               getFormatOptions(), 
               getColumnOptions(document.getElementById('id-content').value),
               detailForm)" value="(re)Display)">
+   <span id="revision" style="float:right"></span>
   </div>
 
   <form id="id-data-form" action="">

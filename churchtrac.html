@@ -7,6 +7,10 @@
   <script type="text/javascript" src="options.js"></script>
   <script type="text/javascript" src="table-create.js"></script>
   <script>
+    var title = 'ChurchTrac Budget Report Tool'
+    var revision = '1.0';
+    var revisionstring = title + ', Revision ' + revision;
+	
     // String constants for spelling consistency
     var combinedName = 'combined';
     var currentBudgetName = '* Current Budget';
@@ -197,6 +201,7 @@
             if (currentActualName in columns || currentBudgetName in columns || currentdifferenceName in columns) {
               footer.textContent = '* "Current" covers the interval from '
                 + priorContent + " to " + thisContent;
+              footer.style = "display: inline-block";
               elem.appendChild(footer);
             }
           }
@@ -204,6 +209,10 @@
             createTable(fileData[thisContent], elem, thisContent, columns,
               noCsvHeader, onclick, format);
           }
+          var span = document.createElement("span");
+          span.style = "float:right;";
+          span.textContent = "Created by " + revisionstring;
+          elem.appendChild(span);
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
@@ -246,13 +255,17 @@
     document.addEventListener('DOMContentLoaded', function () {
       hideDataform();
       populateFormatOptions('id-format');
-      var pageheadingInpElem = document.getElementById('pageheading');
-      if (pageheadingInpElem) {
-        pageheadingInpElem.value = localStorage.getItem(pageheadingSettings)
-      }
-      var dodate = document.getElementById('printed-on');
-      dodate.checked = JSON.parse(localStorage.getItem('printdate'));
+      var elem = document.getElementById('pageheading');
+      elem.value = localStorage.getItem(pageheadingSettings)
 
+      elem = document.getElementById('printed-on');
+      elem.checked = JSON.parse(localStorage.getItem('printdate'));
+
+      elem = document.getElementById('title');
+      elem.innerHTML = title + elem.innerHTML;
+
+      elem = document.getElementById('revision');
+      elem.innerText = revisionstring;
     });
 
   </script>
@@ -262,7 +275,7 @@
 
 <body>
   <div id="config">
-    <h1>ChurchTrac Budget Report Tool
+    <h1 id="title">
       <span id="id-object"></span>
     </h1>
 
@@ -296,6 +309,7 @@
     </div>
 
     <input type="button" onclick="showData()" value="(re)Display)">
+    <span id="revision" style="float:right"></span>
   </div>
 
   <form id="id-data-form" action="">

@@ -45,6 +45,7 @@ def combine(files):
         else:
             for filename in inputs:
                 if (line.find(filename) >= 0):
+                    # Remove <link> or <script> include line
                     line = ''
 
         outfile.write(line)
