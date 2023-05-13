@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    let noCsvHeader = false;
+
+    var pageheadingSettings = 'pageheadingSettings';
+
+    // Name of selected content
+    var thisContent = '';
+
+    /* The name of the (XML File) root object */
+    var rootObject;
+
+    /* Data from the file as named array objects. (In the case of CSV), the single
+       object is the file base name.
+     */
+    let fileData = {};
+
+    /* Column names in selected content */
+    let contentColumns = [];
+
+    // File reader
+    var reader = new FileReader();
+
+    function readFile(id) {
+      let input = document.getElementById(id);
+      var currentFile = input.files[0];
+      reader.readAsText(currentFile);
+
+      reader.onload = function () {
+        noCsvHeader = false;
+        if (currentFile.name.toLowerCase().endsWith(".csv")) {
+          processCsv(currentFile.name, reader.result)
+        }
+        else if (currentFile.name.toLowerCase().endsWith(".xml")) {
+          processXml(currentFile.name, reader.result)
+        }
+        else {
+          var selected = prompt("File must be 'csv' or 'xml'\nPlease specify type or cancel", "xml");
+          if (selected != null) {
+            selected = selected.toLowerCase();
+            if (selected.includes('csv')) {
+              processCsv(currentFile.name, reader.result)
+            }
+            else if (selected.includes('xml')) {
+              processXml(currentFile.name, reader.result)
+            }
+          }
+        }
+      };
+
+      reader.onerror = function () {
+        console.log(reader.error);
+      };
+    }
+
+    // Processing input data
+    function processCsv(filename, content) {
+      let objectElem = document.getElementById("id-object");
+      let contentElem = document.getElementById("id-content");
+      hideDataTable();
+      thisContent = decamelize(filename.replace(/\.[^/.]+$/, ""));
+      fileData = {};
+      let data;
+      let noHeaderElem = document.getElementById("id-no-header");
+      if (noHeaderElem && noHeaderElem.checked) {
+        data = d3.csvParseRows(content);
+        noCsvHeader = true;
+      }
+      else {
+        data = d3.csvParse(content);
+      }
+      fileData[thisContent] = data;
+      objectElem.textContent = "";
+      createColumnList(thisContent, Object.keys(data[0]));
+
+      contentElem.replaceChildren([]);
+      contentElem.add(new Option(thisContent, thisContent));
+
+      populateColumnOptions(thisContent);
+    }
+
+    function processXml(filename, content) {
+      let objectElem = document.getElementById("id-object");
+      let contentElem = document.getElementById("id-content");
+      hideDataTable();
+      var parser = new DOMParser();
+      var xmlDoc = parser.parseFromString(content, "text/xml");
+      let data = xmlToJson(xmlDoc);
+      fileData = {};
+
+      rootObject = Object.keys(data)[0];
+      objectElem.textContent = " - Object: " + rootObject;
+      data = data[rootObject];
+
+      contentElem.replaceChildren([]);
+      resolveParts(contentElem, '', data);
+      populateColumnOptions(contentElem.value);
+    }
+
+    /* (recursively) resolve the XML content so that all of the 
+       contents can be displayed using the table format
+     */
+    function resolveParts(contentElem, ancestor, data) {
+      let newObj;
+      let newName = 'Document';
+
+      for (var i = 0; i < Object.keys(data).length; ++i) {
+        let key = Object.keys(data)[i];
+        if (key !== '@attributes') {
+          let name = ancestor + key;
+          if (Array.isArray(data[key])) {
+            // An array is the normal expected
+            // content to be displayed in a table
+            fileData[name] = data[key];
+            contentElem.add(new Option(name, name));
+            createColumnList(name, Object.keys(data[key][0]));
+          }
+          else if (typeof (data[key]) === 'object') {
+            // A field may have sub-arrays, recurse
+            resolveParts(contentElem, name + ':', data[key]);
+          }
+          else {
+            // Otherwise synthesize fields into a new
+            // single element array (named Document if there 
+            // is no ancestor)
+            if (!newObj) {
+              newObj = {};
+              if (ancestor) {
+                newName = ancestor;
+              }
+              if (fileData[newName]) {
+                newObj = fileData[newName];
+              }
+              else {
+                fileData[newName] = [newObj];
+                contentElem.add(new Option(newName, newName));
+              }
+            }
+            newObj[key] = data[key];
+          }
+        }
+      }
+      if (newObj) {
+        // If an object was synthesized, create a columnlist for it
+        createColumnList(newName, Object.keys(newObj));
+      }
+    }
+
+    function createColumnList(name, columns) {
+      let list = [];
+      columns.forEach(function (column) {
+        if (column !== '@attributes') {
+          list.push({ 'name': column, 'text': column });
+        }
+      });
+      contentColumns[name] = list;
+    }
+
+    // Options
+    function populateFormatOptions(elemId) {
+      var formElem = document.getElementById(elemId);
+      populateOptions(formElem, tableOptions, 'fmt-', false);
+      overrideOptions(tableOptions, 'fmt-');
+    }
+    function getFormatOptions() {
+      return getOptions(tableOptions, 'fmt-');
+    }
+    function populateColumnOptions(which, elemId) {
+      hideDataTable();
+
+      thisContent = which;
+      var formElem = document.getElementById('id-columns');
+      populateOptions(formElem, contentColumns[which], 'col-', true);
+      overrideOptions(contentColumns[which], 'col-');
+    }
+    function getColumnOptions(which) {
+      return getOptions(contentColumns[which], 'col-');
+    }
+
+    // Creating and displaying the table
+    function printHiding(elemId) {
+      var elem = document.getElementById(elemId);
+      elem.style = "display: none";
+      print();
+      elem.style = "display: block";
+    }
+    function showData(which, elem, format, columns, onClick) {
+      hideDataform();
+      thisContent = which;
+
+      elem.replaceChildren();
+      if (thisContent) {
+        try {
+          var pageheadingInpElem = document.getElementById('pageheading');
+          if (pageheadingInpElem.value.trim().length > 0) {
+            var span = document.createElement("span");
+            span.style = "display:flex";
+            var pageheadingElem = document.createElement('h3');
+            pageheadingElem.textContent = pageheadingInpElem.value.trim();
+            span.appendChild(pageheadingElem);
+            var dodate = document.getElementById('printed-on');
+            if (dodate.checked) {
+              var printed = document.createElement('h3');
+              printed.textContent = "Printed on " + new Date().toLocaleDateString();
+              printed.style = "margin-left: auto; display: inline-block";
+              span.appendChild(printed);
+            }
+            elem.appendChild(span);
+          }
+
+          createTable(fileData[which], elem, which, columns,
+            noCsvHeader, onClick, format);
+
+          localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
+          localStorage.setItem('printdate', JSON.stringify(dodate.checked));
+        } catch (error) {
+          elem.textContent = 'Malformed file: ' + error.message;
+        }
+      }
+      else {
+        elem.textContent = 'No Content Selected';
+
+      }
+      showDataTable();
+    };
+
+    // Event handler (if onclick is specified in showData)
+    function detailForm(e) {
+      var t = e.target;
+
+      var formElem = document.getElementById("dataFormId");
+      populateForm(e.target.parentElement.src, thisContent, formElem);
+      showDataform();
+    }
+
+    // Visibility
+    function showDataform() {
+      document.getElementById("id-data-form").style.display = "block";
+    }
+    function hideDataform() {
+      document.getElementById("id-data-form").style.display = "none";
+    }
+
+    function showDataTable() {
+      document.getElementById("id-data").style.display = "block";
+    }
+    function hideDataTable() {
+      hideDataform();
+      document.getElementById("id-data").style.display = "none";
+    }
+
+    // Form Load
+    document.addEventListener('DOMContentLoaded', function () {
+      hideDataform();
+      populateFormatOptions('id-format');
+      var pageheadingInpElem = document.getElementById('pageheading');
+      if (pageheadingInpElem) {
+        pageheadingInpElem.value = localStorage.getItem(pageheadingSettings)
+      }
+      var dodate = document.getElementById('printed-on');
+      dodate.checked = JSON.parse(localStorage.getItem('printdate'));
+
+    });
+
+"use strict";
+/*  Present and query a set of options
+
+    Typical html (single tooltip-text element for entire page)
+    OPTIONAL group DIV
+
+    <p id="tooltip-text">The tooltip text.</p>
+    <div class="group">Option Label
+        <div id="<Container element ID>" class="container"></div>
+    </div>
+
+    CSS required for:
+        p#tooltip-text, .container, amd .contained
+        Optional .group
+*/
+
+/* Populate 'containerElem' with options from 'list' using 'scope' to qualify
+   element ID's, and initializing state to 'isChecked'
+
+   'list' is an array of objects containing 'name', 'text', and optional 'description'.
+   If description is present, it is used for tooltip text.
+
+   Note that scope + name are transformed into valid HTML ID's
+ */
+function populateOptions(containerElem, list, scope, isChecked) {
+  containerElem.replaceChildren();
+  if (list) {
+    const tooltip = document.getElementById("tooltip-text");
+    list.forEach(function (item) {
+      let idPart = _createHtmlId(scope + item.name);
+
+      var divElem = document.createElement('div');
+      divElem.id = "iddiv-" + idPart;
+      divElem.className = "contained";
+
+      var inputElem = document.createElement('input');
+      inputElem.type = 'checkbox';
+      inputElem.id = 'id-' + idPart;
+      inputElem.name = item.name;
+      inputElem.value = item.name;
+      inputElem.checked = isChecked;
+
+      var labelElem = document.createElement('label');
+      labelElem.htmlFor = 'id-' + idPart;
+      labelElem.textContent = item.text;
+
+      divElem.appendChild(inputElem);
+      divElem.appendChild(labelElem);
+
+      containerElem.appendChild(divElem);
+    });
+    list.forEach(function (item) {
+      let idPart = _createHtmlId(scope + item.name);
+      if (item.description) {
+        document.getElementById("iddiv-" + idPart).addEventListener('mouseenter', (event) => {
+          tooltip.style.display = 'block';
+          tooltip.textContent = item.description;
+          tooltip.style.top = (event.target.offsetTop - 60) + 'px';
+          tooltip.style.left = (event.target.offsetLeft
+            + (event.target.clientWidth - tooltip.clientWidth) / 2) + 'px';
+        }, false);
+
+        // change display to 'none' on mouseleave
+        document.getElementById("iddiv-" + idPart).addEventListener('mouseleave', () => {
+          //alert("mouseleave");
+          tooltip.style.display = 'none';
+        }, false);
+      }
+
+    });
+  }
+}
+
+/* Get selected options as an array of option names. 'list' and 'scope' 
+   are the same values used for populateOptions().
+ */
+function getOptions(list, scope) {
+  let checked = {};
+  if (list) {
+    list.forEach(function (item) {
+      let idPart = _createHtmlId(scope + item.name);
+      var elem = document.getElementById('id-' + idPart);
+      if (elem && elem.checked) {
+        checked[elem.name] = elem.name;
+      }
+    });
+  }
+  localStorage.setItem(scope + 'settings', JSON.stringify(checked));
+
+  return checked;
+}
+
+function overrideOptions(list, scope) {
+  var checked = JSON.parse(localStorage.getItem(scope + 'settings'));
+  if (list) {
+    list.forEach(function (item) {
+      let idPart = _createHtmlId(scope + item.name);
+      var elem = document.getElementById('id-' + idPart);
+      elem.checked = (elem && elem.name in checked);
+    });
+  }
+}
+
+function setAllOptions(list, scope, checked) {
+  if (list) {
+    list.forEach(function (item) {
+      let idPart = _createHtmlId(scope + item.name);
+      var elem = document.getElementById('id-' + idPart);
+      if (elem) {
+        elem.checked = checked;
+      }
+    });
+  }
+}
+
+/* Utility function to create properly formed ID */
+function _createHtmlId(value) {
+  const id = value ? value.replace(/\W/g, '_') : '_';
+  return id.charAt(0).match(/[\d_]/g)?.length ? `id_${id}` : id;
+}"use strict";
+let nested = "Nested";
+let incomeExpense = "Income-Expense";
+let subtotal = "Subtotal";
+let blankZeros = "Blank-Zeros";
+let sorting = "sorting";
+
+let tableOptions = [
+  {
+    'name': incomeExpense, 'text': 'Indent inside Income/Expense rows',
+    'description': 'Ident all rows that do not start with "Income Category" or "Expense Category"'
+  },
+  {
+    'name': nested, 'text': 'Indent ":" separated names',
+    'description': 'Indent colon separated names as a hierarchy'
+  },
+  {
+    'name': subtotal, 'text': 'Append Subtotals', 'description':
+      'Append subtotal rows (to indented numeric columns)'
+  },
+  {
+    'name': blankZeros, 'text': 'Blank zero values',
+    'description': 'Do not display any values that are "0"'
+  },
+  {
+    'name': sorting, 'text': 'Sort columns', 'description':
+      'Enable sorting by clicking column heading'
+  },
+  /*{ 'name' :  subtotal, 'text' : 'nested', 'description': 'nested tooltip' }, */
+];
+
+let incomeCategories = "INCOME CATEGORIES";
+let expenseCategories = "EXPENSE CATEGORIES";
+
+/*
+
+    UTILITY
+
+*/
+function getJsonColumns(item) {
+  var columns = [];
+  for (var name in item) {
+    if (name !== '@attributes') {
+      columns.push(name);
+    }
+  }
+  return columns;
+}
+
+function getJsonColumnNames(item) {
+  var columns = [];
+  for (var name in item) {
+    if (name !== '@attributes') {
+      columns[name] = name;
+    }
+  }
+  return columns;
+}
+
+
+function decamelize(name) {
+  var out = name.substr(0, 1).toUpperCase();
+  for (var i = 1; i < name.length; ++i) {
+    if (name[i] == name[i].toUpperCase()) {
+      if (i + 1 < name.length && name[i + 1] != name[i + 1].toUpperCase())
+        out += " ";
+    }
+    out += name[i];
+  }
+  return out;
+}
+
+function indentStyle(steps) {
+  return (steps * 15) + 'px';
+}
+
+/*
+
+    FORM
+
+*/
+function populateForm(item, title, elem) {
+  elem.replaceChildren();
+  var titleElem = document.createElement('h2');
+  titleElem.textContent = title;
+  elem.appendChild(titleElem);
+
+  var columns = getJsonColumns(item);
+  var count = 0;
+  columns.forEach(function (name) {
+    if (typeof (item[name]) === 'object') {
+      var labelElem = document.createElement('label');
+      labelElem.htmlFor = name;
+      labelElem.textContent = decamelize(name);
+      elem.appendChild(labelElem);
+      createOnlyTable(item[name][Object.keys(item[name])[0]], elem, [], false, detailForm, []);
+    }
+    else {
+      addFormField(elem, name, decamelize(name), item[name]);
+    }
+    if ((count++ & 1) == 1) {
+      elem.appendChild(document.createElement("br"));
+    }
+  });
+}
+function addFormField(elem, name, label, value) {
+  var date = new Date(value)
+  if (date.getTime() === date.getTime() && value.indexOf('-') > 0) {
+    if (date.getFullYear() > 1) {
+      value = date.toDateString();
+    }
+    else {
+      value = '';
+    }
+  }
+
+  var labelElem = document.createElement('label');
+  labelElem.htmlFor = name;
+  labelElem.textContent = label;
+
+  var inputElem = document.createElement('input');
+  inputElem.type = 'text';
+  inputElem.id = name;
+  inputElem.name = name;
+  inputElem.value = value;
+  inputElem.size = 20;
+
+  elem.appendChild(labelElem);
+  elem.appendChild(inputElem);
+}
+
+/*
+
+    TABLE
+
+*/
+function createTable(data, elem, title, columns, noHeader, onclick, options) {
+  if (data.length == 1) {
+    populateForm(data[0], title, elem);
+    return;
+  }
+  var titleElem = document.createElement('h3');
+  titleElem.textContent = title;
+  elem.appendChild(titleElem);
+  createOnlyTable(data, elem, columns, noHeader, onclick, options)
+}
+function createOnlyTable(data, elem, columns, noHeader, onclick, options) {
+  var table = document.createElement('table');
+  elem.appendChild(table);
+  if (columns.length == 0 && data.length > 0) {
+    columns = getJsonColumnNames(data[0]);
+  }
+  if (!noHeader) {
+    table.appendChild(createTableColumns(data, table, columns, options));
+  }
+  table.appendChild(addTableData(data, columns, onclick, options));
+}
+
+function createTableColumns(data, table, columns, options) {
+  var thead = document.createElement('thead');
+
+  if (data.length > 0) {
+    var tr;
+    tr = document.createElement('tr');
+    Object.keys(columns).forEach(function (name) {
+      var th = document.createElement('th');
+      th.textContent = decamelize(name);
+      tr.append(th);
+    });
+    thead.appendChild(tr);
+  }
+
+  if (sorting in options) {
+    thead.addEventListener('click', function (e) {
+      var t = e.target;
+
+      if (!t.dataset.dir) { t.dataset.dir = 1; }
+      else { t.dataset.dir *= -1; }
+      // Remember the direction
+      var tmpdir = t.dataset.dir;
+      // Remove direction class fromn all headings
+      for (var i = 0; i < tr.children.length; ++i) {
+        var ch = tr.children[i];
+        ch.classList.remove("ascending");
+        ch.classList.remove("descending");
+      }
+      // Restore direction and set direction class for e.target
+      t.dataset.dir = tmpdir;
+      if (tmpdir > 0) {
+        t.classList.add("ascending");
+      }
+      else if (tmpdir < 0) {
+        t.classList.add("descending");
+      }
+
+      sortTableRows(table, t.cellIndex, t.dataset.dir);
+    }, false);
+  }
+  return thead;
+}
+
+function firstColumn(tr, indent, colName, clazz) {
+  var td = document.createElement('td');
+  td.style.left = indentStyle(indent);
+  td.style.position = 'relative';
+  td.textContent = colName;
+  if (clazz) {
+  td.classList.add(clazz);
+  }
+  tr.appendChild(td)
+}
+
+function nonFirstColumn(tr, value, clazz) {
+  var td = document.createElement('td');
+  td.style.textAlign = 'right';
+  td.textContent = value;
+  if (clazz) {
+    td.classList.add(clazz);
+    }
+    tr.appendChild(td)
+}
+
+function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
+  firstColumn(tr, indent, "Subtotal", "subtotal");
+  Object.keys(columns).forEach(function (key, col) {
+    if (col > 0) { // Already did firstColumn
+      let num = 0;
+      let result = "";
+      for (var i = start; i < end; i++) {
+        let value = data[i][key];
+        if (isNaN(value)) {
+          result = "";
+          break;
+        }
+        else {
+          num += Number(value);
+          result = num + "";
+        }
+      }
+      if (blankZeros in options && num == 0) {
+        // Blank zero values
+        nonFirstColumn(tr, '', "subtotal");
+      }
+      else {
+        nonFirstColumn(tr, result, "subtotal");
+      }
+    }
+  });
+}
+
+function addTableData(data, columns, onclick, options) {
+  var tbody = document.createElement('tbody');
+
+  var frag = document.createDocumentFragment(),
+    row, cell;
+
+  let indent = -1;
+  let rootIndent = 0;
+  let newIndent = -1;
+  let startRows = [];
+  let priorFields = [];
+  let doingExpense = false;
+
+  for (var i = 0; i < data.length; i++) {
+    var tr = document.createElement('tr');
+    tr.src = data[i];
+
+    let colNum = 0;
+    Object.keys(columns).forEach(function (name) {
+      let value = data[i][name];
+      var td = document.createElement('td');
+
+      if (colNum == 0) {
+        if (nested in options && typeof value == 'string') {
+          // Indent nested fields
+          let fields = value.split(':');
+          newIndent = fields.length - 1;
+
+          // Find index of first difference
+          let firstDiff = 0;
+          for (firstDiff = 0;
+            firstDiff < fields.length
+            && firstDiff < priorFields.length; ++firstDiff) {
+            if (fields[firstDiff] !== priorFields[firstDiff]) {
+              break;
+            }
+          }
+
+          if (indent > firstDiff) {
+            // Append Subtotal for each 'ended' indent
+            while (indent > firstDiff) {
+              // Subtotal only if more than one line
+              if (subtotal in options && i - startRows[indent] > 1) {
+                appendNumericSubtotal(tr, rootIndent + indent, data, columns,
+                  startRows[indent], i, options);
+                frag.appendChild(tr);
+                tr = document.createElement('tr');
+              }
+              --indent;
+            }
+            // And set current indent to first NOT different
+            --indent;
+          }
+
+          if (newIndent > indent) {
+            value = '';
+            // remember start row and set value
+            ++indent;
+            value = fields[indent];
+            // Prior row (heading) is the subtotal start row
+            startRows[indent] = i - 1;
+            while (newIndent > indent + 1) {
+              // This row is the subtotal start row (the heading is synthesized)
+              startRows[indent] = i;
+              firstColumn(tr, rootIndent + indent, fields[indent]);
+              for (var col = 1; col < columns.length; ++col) {
+                nonFirstColumn(tr, '');
+              }
+              ++indent;
+
+              // Add missing header row
+              frag.appendChild(tr);
+              tr = document.createElement('tr');
+            }
+          }
+          else {
+            value = fields[newIndent];
+          }
+          priorFields = fields;
+        }
+        else {
+          indent = 0;
+        }
+
+        if (typeof value == 'string'
+          && value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+          doingExpense = true;
+        }
+
+        // Set rootIndent AFTER appending Subtotal using prior indentation
+        if (incomeExpense in options && typeof value == 'string'
+          && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
+          && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+          // Indent inside income/expense
+          rootIndent = 1;
+        }
+        else {
+          rootIndent = 0;
+        }
+        if (rootIndent + indent > 0) {
+          // Apply visual indentation
+          td.style.left = indentStyle(rootIndent + indent);
+          td.style.position = 'relative';
+        }
+      }
+      else {
+        // All but first column align right
+        td.style.textAlign = 'right';
+      }
+      if (blankZeros in options && value.trim() == '0') {
+        // Blank zero values
+        value = '';
+      }
+      td.dataset.propName = name;
+      if (typeof (value) === 'object') {
+        value = '[OBJECT]';
+      }
+      else {
+        var date = new Date(value)
+        if (date.getTime() === date.getTime() && value.indexOf('-') > 0) {
+          if (date.getFullYear() > 1) {
+            value = date.toDateString();
+          }
+        }
+      }
+      td.textContent = value;
+      // Here is where we might decide to indicate 
+      // concern based on values and doingExpense
+      tr.appendChild(td)
+      ++colNum;
+    });
+
+    frag.appendChild(tr);
+  }
+
+  tbody.appendChild(frag);
+  if (onclick) {
+    tbody.addEventListener('click', onclick, false);
+  }
+
+  return tbody;
+};
+
+function sortTableRows(table, index, dir) {
+  var switching = true;
+  /*Make a loop that will continue until
+  no switching has been done:*/
+  while (switching) {
+    //start by saying: no switching is done:
+    switching = false;
+    var rows = table.rows;
+
+    for (var i = 1; i < (rows.length - 1); i++) {
+      //start by saying there should be no switching:
+      var shouldSwitch = false;
+      /*Get the two elements you want to compare,
+      one from current row and one from the next:*/
+      var x = rows[i].cells[index].textContent;
+      var y = rows[i + 1].cells[index].textContent;
+      //check if the two rows should switch place:
+      if ((dir > 0 && x.toLowerCase() > y.toLowerCase())
+        || (dir < 0 && x.toLowerCase() < y.toLowerCase())) {
+        //if so, mark as a switch and break the loop:
+        shouldSwitch = true;
+        break;
+      }
+    }
+    if (shouldSwitch) {
+      /*If a switch has been marked, make the switch
+      and mark that a switch has been done:*/
+      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+      switching = true;
+    }
+  }
+};
+
+/* Content specific operations 
+ */
+"use strict";
+
+// Change XML to JSON
+function xmlToJson(xml) {
+
+  // Create the return object
+  var obj = {};
+
+  if (xml.nodeType == 1) { // element
+    // do attributes
+    if (xml.attributes.length > 0) {
+      obj["@attributes"] = {};
+      for (var j = 0; j < xml.attributes.length; j++) {
+        var attribute = xml.attributes.item(j);
+        obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+      }
+    }
+    else {
+      //   return xml.textContent;
+    }
+  } else if (xml.nodeType == 3) { // text
+    obj = xml.nodeValue;
+  }
+
+  // do children
+  if (xml.children.length > 0) {
+    for (var i = 0; i < xml.children.length; i++) {
+      var item = xml.children[i];
+      var nodeName = item.nodeName;
+      if (typeof (obj[nodeName]) == "undefined") {
+        obj[nodeName] = xmlToJson(item);
+      } else {
+        if (typeof (obj[nodeName].push) == "undefined") {
+          var old = obj[nodeName];
+          obj[nodeName] = [];
+          obj[nodeName].push(old);
+        }
+        obj[nodeName].push(xmlToJson(item));
+      }
+    }
+  }
+  else {
+    return xml.textContent;
+  }
+  return obj;
+};
+
+  </script>
+  <style>
+:root {
+  --body-background: white;
+  --border-color: black;
+  --table-border-color: #ddd;
+  --even-background: #ddd;
+  --field-background: rgb(220, 220, 220);
+  --group-background: #eee;
+  --contained-background: #fcfcfc;
+  --thead-background: linear-gradient(#bbb, #ddd);
+}
+
+
+table {
+  font-family: arial, sans-serif;
+  width: 100%;
+  border-right: 1px solid var(--table-border-color);
+  background-color: var(--body-background);
+}
+
+td,
+th {
+  border-left: 1px solid var(--table-border-color);
+  border-top: 1px solid var(--table-border-color);
+  border-bottom: 0px solid var(--table-border-color);
+
+  text-align: left;
+  padding: 8px;
+  max-width: 20%;
+}
+
+thead {
+  background: var(--thead-background);
+  font-weight: 300;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.subtotal {
+  border-top: 2px solid black;
+  border-bottom: 0px solid var(--table-border-color);
+}
+
+.descending::after {
+  content: " \290A";
+}
+
+.ascending::after {
+  content: " \290B";
+}
+
+
+th {
+  text-align: center;
+}
+
+tr:nth-child(even) {
+  background-color: var(--even-background);
+}
+
+body {
+  padding: 8px;
+  background-color: var(--body-background);
+}
+
+form {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 75%;
+  transform: translate(-50%, -50%);
+}
+
+fieldset {
+  padding: 5px;
+  /*  color: white;*/
+}
+
+fieldset label {
+  display: inline-block;
+  width: 100px;
+}
+
+fieldset input {
+  padding: 1px;
+  margin: 4px;
+  font-weight: bold;
+}
+
+fieldset {
+  /*  position: fixed;
+  display: block;
+*/
+  width: 100%;
+  height: 100%;
+  background-color: var(--field-background);
+  z-index: 2;
+  overflow-y: scroll;
+}
+
+.input-span {
+  display: inline-block;
+  width: fit-content;
+  border: 1px solid;
+  padding: 2px;
+  margin: 3px;
+  border-radius: 4px;
+}
+
+.group {
+  background-color: var(--group-background);
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px;
+  margin: 4px;
+}
+
+.container {
+  display: inline-flex;
+  flex-wrap: wrap;
+}
+
+.contained {
+  background-color: var(--contained-background);
+  padding: 4px;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  float: left;
+  width: 120px;
+  margin: 4px;
+}
+
+/* styling of the tooltip display */
+p#tooltip-text {
+  display: none;
+  position: absolute;
+  top: 60px;
+  z-index: 1;
+  background: cornsilk;
+  padding: 8px;
+  font-size: 1rem;
+  color: black;
+  border-radius: 2px;
+  animation: fadeIn 0.6s;
+}
+
+/* optional styling to add a "wedge" to the tooltip */
+p#tooltip-text:before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -8px;
+  border: 8px solid transparent;
+  border-top: 8px solid black;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}  </style>
+</head>
+
+<body>
+  <div id="config">
+    <h1>XML / CSV Reader
+      <span id="id-object"></span>
+    </h1>
+
+    <div id="config">
+      <span class="input-span">
+        <input type="file" id="id-file" accept="text/csv,text/xml" onclick="type=''; type='file';"
+          onchange="readFile('id-file')">
+
+        <label for="id-no-header">No CSV header</label>
+        <input type="checkbox" id="id-no-header">
+      </span>
+
+      <label for=" id-content"> Content:</label>
+      <select id="id-content" onchange="populateColumnOptions(this.value)"></select>
+
+      <label for="printed-on"> Print Date</label>
+      <input id="printed-on" type="checkbox" checked>
+
+      <input type="button" onclick="printHiding('config')" value="Hide Configuration and Print" />
+      <br>
+      <span class='input-span'> Page Heading
+        <input id="pageheading" size="60" type="text" />
+      </span>
+    </div>
+    <p id="tooltip-text">The tooltip text.</p>
+    <div class="group">Columns<br><button onclick="setAllOptions(contentColumns[thisContent], 'col-', true);">Select
+        All</button>
+      <div id="id-columns" class="container"></div>
+    </div>
+    <div class="group">Format
+      <div id="id-format" class="container"></div>
+    </div>
+
+    <input type="button" onclick="showData(
+              document.getElementById('id-content').value,
+              document.getElementById('id-data'), 
+              getFormatOptions(), 
+              getColumnOptions(document.getElementById('id-content').value),
+              detailForm)" value="(re)Display)">
+  </div>
+
+  <form id="id-data-form" action="">
+    <fieldset id="id-data-form">
+      <div id="dataFormId"></div>
+      <input style="padding: 6px; float: right" type="button" value="Close" onclick="hideDataform()">
+    </fieldset>
+  </form>
+  <div id="id-data"></div>
+</body>
+
+</html>

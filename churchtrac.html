@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link href="style.css" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script type="text/javascript" src="options.js"></script>
+  <script type="text/javascript" src="table-create.js"></script>
+  <script>
+    // String constants for spelling consistency
+    var combinedName = 'combined';
+    var currentBudgetName = '* Current Budget';
+    var currentActualName = '* Current Actual';
+    var currentdifferenceName = '* Current Difference';
+    var ytdBudgetName = 'YTD Budget';
+    var ytdActualName = 'YTD Actual';
+
+    var pageheadingSettings = 'pageheadingSettings';
+
+    // Name of selected content
+    var thisContent = '';
+    var priorContent = '';
+
+    // Data from the file as named array objects.
+    let fileData = {};
+
+    /* Column names in selected content */
+    let contentColumns = [];
+
+    // File reader
+    var reader = new FileReader();
+
+    function readFile(id, prior) {
+      let input = document.getElementById(id);
+      var currentFile = input.files[0];
+      reader.readAsText(currentFile);
+
+      reader.onload = function () {
+        processCsv(currentFile.name, reader.result, prior);
+      };
+      reader.onerror = function () {
+        console.log(reader.error);
+      };
+    }
+
+    // Processing input data
+    function processCsv(filename, content, prior) {
+      hideDataTable();
+      if (filename.toLowerCase().endsWith(".csv")) {
+        let contentName = decamelize(filename.replace(/\.[^/.]+$/, ""));
+        let data;
+        data = d3.csvParse(content);
+        fileData[contentName] = data;
+
+        let list1 = [];
+        list1.push({ 'name': 'Category', 'text': 'Category' });
+        createColumnList(contentName, Object.keys(data[0]), list1);
+
+        let list = [];
+        list.push({ 'name': 'Category', 'text': 'Category' });
+        list.push({ 'name': currentBudgetName, 'text': currentBudgetName });
+        list.push({ 'name': currentActualName, 'text': currentActualName });
+        list.push({ 'name': currentdifferenceName, 'text': currentdifferenceName });
+        
+        createColumnList(combinedName, Object.keys(data[0]), list);
+
+        if (prior) {
+          priorContent = contentName;
+          contentName = combinedName
+        }
+        else {
+          thisContent = contentName;
+
+          let objectElem = document.getElementById("id-object");
+          objectElem.textContent = " - " + contentName;
+          if (priorContent) {
+            contentName = combinedName;
+          }
+        }
+        populateColumnOptions(contentName);
+      }
+      else {
+        alert("File must be 'csv'");
+      }
+    }
+
+    function createColumnList(name, columns, list) {
+      columns.forEach(function (column) {
+        if (column != 'Category') {
+          list.push({ 'name': column, 'text': column });
+        }
+      });
+      contentColumns[name] = list;
+    }
+
+    // Options
+    function populateFormatOptions(elemId) {
+      var formElem = document.getElementById(elemId);
+      populateOptions(formElem, tableOptions, 'fmt-', false);
+      overrideOptions(tableOptions, 'fmt-');
+    }
+    function getFormatOptions() {
+      return getOptions(tableOptions, 'fmt-');
+    }
+    function populateColumnOptions(which, elemId) {
+      hideDataTable();
+
+      var formElem = document.getElementById('id-columns');
+      populateOptions(formElem, contentColumns[which], 'col-', true);
+      overrideOptions(contentColumns[which], 'col-');
+    }
+    function getColumnOptions(which) {
+      return getOptions(contentColumns[which], 'col-');
+    }
+
+    // Creating and displaying the table
+    function printHiding(elemId) {
+      var elem = document.getElementById(elemId);
+      elem.style = "display: none";
+      print();
+      elem.style = "display: block";
+    }
+
+    function subtract(current, prior) {
+      if (isNaN(prior) || prior.length == 0) {
+        return current;
+      }
+      else if (isNaN(current) || current.length == 0) {
+        return '';
+      }
+      else {
+        return (Number(current) - Number(prior)) + '';
+      }
+    }
+
+    /* Process current and prior reports and generate a combined version
+     * that includes current plus current actual and budget columns that
+     * contain the difference between prior and current
+     */
+    function combine() {
+      var current = fileData[thisContent];
+      var prior = fileData[priorContent];
+      var combined = [];
+      if (current.length == prior.length) {
+        for (var i = 0; i < current.length; ++i) {
+          combined[i] = current[i];
+          combined[i][currentActualName] = subtract(current[i][ytdActualName], prior[i][ytdActualName]);
+          combined[i][currentBudgetName] = subtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
+          combined[i][currentdifferenceName] = subtract(current[i][currentActualName], current[i][currentBudgetName]);
+          
+        }
+        fileData[combinedName] = combined;
+        return true;
+      }
+      else {
+        return false;
+      }
+
+    }
+
+    function showData() {
+      let elem = document.getElementById('id-data');
+      let format = getFormatOptions();
+      let columns = getColumnOptions(thisContent)
+      let onclick = null; // detailForm;
+      let noCsvHeader = false;
+
+      hideDataform();
+
+      elem.replaceChildren();
+
+      if (thisContent) {
+        try {
+          var pageheadingInpElem = document.getElementById('pageheading');
+          if (pageheadingInpElem.value.trim().length > 0) {
+            var span = document.createElement("span");
+            span.style = "display:flex";
+            var pageheadingElem = document.createElement('h3');
+            pageheadingElem.textContent = pageheadingInpElem.value.trim();
+            span.appendChild(pageheadingElem);
+            var dodate = document.getElementById('printed-on');
+            if (dodate.checked) {
+              var printed = document.createElement('h3');
+              printed.textContent = "Printed on " + new Date().toLocaleDateString();
+              printed.style = "margin-left: auto; display: inline-block";
+              span.appendChild(printed);
+            }
+            elem.appendChild(span);
+          }
+
+          if (priorContent) {
+            columns = getColumnOptions(combinedName);
+            combine();
+            createTable(fileData[combinedName], elem, thisContent, columns,
+              noCsvHeader, onclick, format);
+            var footer = document.createElement('h4');
+            if (currentActualName in columns || currentBudgetName in columns || currentdifferenceName in columns) {
+              footer.textContent = '* "Current" covers the interval from '
+                + priorContent + " to " + thisContent;
+              elem.appendChild(footer);
+            }
+          }
+          else {
+            createTable(fileData[thisContent], elem, thisContent, columns,
+              noCsvHeader, onclick, format);
+          }
+
+          localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
+          localStorage.setItem('printdate', JSON.stringify(dodate.checked));
+        } catch (error) {
+          elem.textContent = 'Malformed file: ' + error.message;
+        }
+      }
+      else {
+        elem.textContent = '"This Month" file not loaded';
+      }
+      showDataTable();
+    };
+
+    // Event handler (if onclick is specified in showData)
+    function detailForm(e) {
+      var t = e.target;
+
+      var formElem = document.getElementById("dataFormId");
+      populateForm(e.target.parentElement.src, thisContent, formElem);
+      showDataform();
+    }
+
+    // Visibility
+    function showDataform() {
+      document.getElementById("id-data-form").style.display = "block";
+    }
+    function hideDataform() {
+      document.getElementById("id-data-form").style.display = "none";
+    }
+
+    function showDataTable() {
+      document.getElementById("id-data").style.display = "block";
+    }
+    function hideDataTable() {
+      hideDataform();
+      document.getElementById("id-data").style.display = "none";
+    }
+
+    // Form Load
+    document.addEventListener('DOMContentLoaded', function () {
+      hideDataform();
+      populateFormatOptions('id-format');
+      var pageheadingInpElem = document.getElementById('pageheading');
+      if (pageheadingInpElem) {
+        pageheadingInpElem.value = localStorage.getItem(pageheadingSettings)
+      }
+      var dodate = document.getElementById('printed-on');
+      dodate.checked = JSON.parse(localStorage.getItem('printdate'));
+
+    });
+
+  </script>
+  <style>
+  </style>
+</head>
+
+<body>
+  <div id="config">
+    <h1>ChurchTrac Budget Report Tool
+      <span id="id-object"></span>
+    </h1>
+
+    <div id="config">
+      <span class="input-span">
+        This Month <input type="file" id="id-thismonth" style="width:300px;" accept="text/csv"
+          onclick="type=''; type='file';" onchange="readFile('id-thismonth', false)">
+      </span>
+      <span class="input-span">
+        Prior Month <input type="file" id="id-nextmonth" accept="text/csv" onclick="type=''; type='file';"
+          style="width:300px;" onchange="readFile('id-nextmonth', true)">
+      </span>
+      <span class='input-span'> Page Heading
+        <input id="pageheading" size="60" type="text"
+          value="Spirit of Peace, 13231 Minnetonka Drive, Minnetonka MN 55305" />
+      </span>
+      <span class="input-span">
+        <label for="printed-on"> Print Date</label>
+        <input id="printed-on" type="checkbox" checked>
+
+        <input type="button" onclick="printHiding('config')" value="Hide Configuration and Print" />
+      </span>
+    </div>
+    <p id="tooltip-text">The tooltip text.</p>
+    <div class="group">Columns<br><button onclick="setAllOptions(contentColumns[combinedName], 'col-', true);">Select
+        All</button>
+      <div id="id-columns" class="container"></div>
+    </div>
+    <div class="group">Format
+      <div id="id-format" class="container"></div>
+    </div>
+
+    <input type="button" onclick="showData()" value="(re)Display)">
+  </div>
+
+  <form id="id-data-form" action="">
+    <fieldset id="id-data-form">
+      <div id="dataFormId"></div>
+      <input style="padding: 6px; float: right" type="button" value="Close" onclick="hideDataform()">
+    </fieldset>
+  </form>
+  <div id="id-data"></div>
+</body>
+
+</html>

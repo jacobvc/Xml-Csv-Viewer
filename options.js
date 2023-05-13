@@ -99,7 +99,19 @@ function overrideOptions(list, scope) {
       elem.checked = (elem && elem.name in checked);
     });
   }
- }
+}
+
+function setAllOptions(list, scope, checked) {
+  if (list) {
+    list.forEach(function (item) {
+      let idPart = _createHtmlId(scope + item.name);
+      var elem = document.getElementById('id-' + idPart);
+      if (elem) {
+        elem.checked = checked;
+      }
+    });
+  }
+}
 
 /* Utility function to create properly formed ID */
 function _createHtmlId(value) {

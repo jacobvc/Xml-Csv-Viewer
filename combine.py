@@ -57,7 +57,7 @@ arglist = sys.argv[1:]
 options = "ho:"
 
 # Long options
-long_options = ["Help", "My_file", "Output="]
+long_options = ["help", "output="]
 
 try:
     # Parsing argument
@@ -66,16 +66,20 @@ try:
     # checking each argument
     for arg, argv in args:
 
-        if arg in ("-h", "--Help"):
+        if arg in ("-h", "--help"):
             print(help)
+            exit()
 
-        elif arg in ("-o", "--Output"):
+        elif arg in ("-o", "--output"):
             print(("Output file: % s") % (argv))
             outfilename = argv
 
     outfile = open(outfilename, 'w')
     root, ext = os.path.splitext(outfilename)
-    combine(values)
+    if (len(values) > 1):
+        combine(values)
+    else:
+        print('Input and at least one combine filename required')
 
 except getopt.error as err:
     # output error, and return with an error code

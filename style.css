@@ -21,7 +21,7 @@ td,
 th {
   border-left: 1px solid var(--table-border-color);
   border-top: 1px solid var(--table-border-color);
-  border-bottom: 1px solid var(--table-border-color);
+  border-bottom: 0px solid var(--table-border-color);
 
   text-align: left;
   padding: 8px;
@@ -33,6 +33,11 @@ thead {
   font-weight: 300;
   letter-spacing: 1px;
   cursor: pointer;
+}
+
+.subtotal {
+  border-top: 2px solid black;
+  border-bottom: 0px solid var(--table-border-color);
 }
 
 .descending::after {
