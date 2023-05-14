@@ -92,7 +92,7 @@ function getOptions(list, scope) {
 
 function overrideOptions(list, scope) {
   var checked = JSON.parse(localStorage.getItem(scope + 'settings'));
-  if (list) {
+  if (list && checked) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);

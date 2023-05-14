@@ -266,13 +266,13 @@
       hideDataform();
       populateFormatOptions('id-format');
       var elem = document.getElementById('pageheading');
-      elem.value = localStorage.getItem(pageheadingSettings)
+      elem.value = localStorage.getItem(pageheadingSettings);
 
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
 
       elem = document.getElementById('title');
-      elem.innerHTML = title + elem.innerHTML;
+      elem.innerHTML = title;
 
       elem = document.getElementById('revision');
       elem.innerText = revisionstring;
@@ -285,7 +285,7 @@
 
 <body>
   <div id="config">
-    <h1 id="title">
+    <h1><span id="title"></span>
       <span id="id-object"></span>
     </h1>
 

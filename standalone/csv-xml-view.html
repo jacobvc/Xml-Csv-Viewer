@@ -262,13 +262,13 @@
       hideDataform();
       populateFormatOptions('id-format');
       var elem = document.getElementById('pageheading');
-      elem.value = localStorage.getItem(pageheadingSettings)
+      elem.value = localStorage.getItem(pageheadingSettings);
 
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
 
       elem = document.getElementById('title');
-      elem.innerHTML = title + elem.innerHTML;
+      elem.innerHTML = title;
 
       elem = document.getElementById('revision');
       elem.innerText = revisionstring;
@@ -368,7 +368,7 @@ function getOptions(list, scope) {
 
 function overrideOptions(list, scope) {
   var checked = JSON.parse(localStorage.getItem(scope + 'settings'));
-  if (list) {
+  if (list && checked) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
@@ -1039,7 +1039,7 @@ p#tooltip-text:before {
 
 <body>
   <div id="config">
-    <h1 id="title">
+    <h1><span id="title"></span>
       <span id="id-object"></span>
     </h1>
 
