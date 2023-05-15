@@ -173,8 +173,10 @@
 
       elem.replaceChildren();
 
-      if (thisContent) {
+        if (thisContent) {
         try {
+          var dodate = document.getElementById('printed-on');
+
           var pageheadingInpElem = document.getElementById('pageheading');
           if (pageheadingInpElem.value.trim().length > 0) {
             var span = document.createElement("span");
@@ -182,7 +184,6 @@
             var pageheadingElem = document.createElement('h3');
             pageheadingElem.textContent = pageheadingInpElem.value.trim();
             span.appendChild(pageheadingElem);
-            var dodate = document.getElementById('printed-on');
             if (dodate.checked) {
               var printed = document.createElement('h3');
               printed.textContent = "Printed on " + new Date().toLocaleDateString();

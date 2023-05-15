@@ -200,6 +200,7 @@
       hideDataform();
       thisContent = which;
 
+      var dodate = document.getElementById('printed-on');
       elem.replaceChildren();
       if (thisContent) {
         try {
@@ -210,7 +211,6 @@
             var pageheadingElem = document.createElement('h3');
             pageheadingElem.textContent = pageheadingInpElem.value.trim();
             span.appendChild(pageheadingElem);
-            var dodate = document.getElementById('printed-on');
             if (dodate.checked) {
               var printed = document.createElement('h3');
               printed.textContent = "Printed on " + new Date().toLocaleDateString();
