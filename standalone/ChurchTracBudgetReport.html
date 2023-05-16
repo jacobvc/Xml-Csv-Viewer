@@ -171,6 +171,11 @@
       }
     }
 
+    function ClearHighlights(current) {
+      for (var i = 0; i < current.length; ++i) {
+        current[i]['__highlight__'] = {};
+      }
+    }
     function ComputeHighlights(current) {
       let doingExpense = false;
 
@@ -209,6 +214,7 @@
       if (thisContent) {
         try {
           var dodate = document.getElementById('printed-on');
+          var highlight = document.getElementById('highlight');
 
           var pageheadingInpElem = document.getElementById('pageheading');
           if (pageheadingInpElem.value.trim().length > 0) {
@@ -229,7 +235,12 @@
           if (priorContent) {
             columns = getColumnOptions(combinedName);
             combine();
-            ComputeHighlights(fileData[combinedName]);
+            if (highlight.checked) {
+              ComputeHighlights(fileData[combinedName]);
+            }
+            else {
+              ClearHighlights(fileData[combinedName]);
+            }
             createTable(fileData[combinedName], elem, thisContent, columns,
               noCsvHeader, onclick, format);
             var footer = document.createElement('h4');
@@ -241,7 +252,12 @@
             }
           }
           else {
-            ComputeHighlights(fileData[thisContent]);
+            if (highlight.checked) {
+              ComputeHighlights(fileData[thisContent]);
+            }
+            else {
+              ClearHighlights(fileData[thisContent]);
+            }
             createTable(fileData[thisContent], elem, thisContent, columns,
               noCsvHeader, onclick, format);
           }
@@ -252,6 +268,7 @@
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
+          localStorage.setItem('highlight', JSON.stringify(highlight.checked));
         } catch (error) {
           elem.textContent = 'Malformed file: ' + error.message;
         }
@@ -294,6 +311,8 @@
       var elem = document.getElementById('pageheading');
       elem.value = localStorage.getItem(pageheadingSettings);
 
+      elem = document.getElementById('highlight');
+      elem.checked = JSON.parse(localStorage.getItem('highlight'));
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
 
@@ -853,7 +872,7 @@ function sortTableRows(table, index, dir) {
   --border-color: black;
   --table-border-color: #ddd;
   --even-background: #ddd;
-  --field-background: rgb(220, 220, 220);
+  --field-background: #dcdcdc;
   --group-background: #eee;
   --contained-background: #fcfcfc;
   --thead-background: linear-gradient(#bbb, #ddd);
@@ -937,9 +956,6 @@ fieldset input {
 }
 
 fieldset {
-  /*  position: fixed;
-  display: block;
-*/
   width: 100%;
   height: 100%;
   background-color: var(--field-background);
@@ -949,8 +965,7 @@ fieldset {
 
 .highlight {
   background-color: cornsilk;
-  opacity:.6;
-  font-weight: 600;
+  font-weight: bold;
 }
 
 .input-span {
@@ -1040,6 +1055,8 @@ p#tooltip-text:before {
         <input id="pageheading" size="60" type="text" />
       </span>
       <span class="input-span">
+        <label for="highlight"> Highlight</label>
+        <input id="highlight" type="checkbox" checked>
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 
