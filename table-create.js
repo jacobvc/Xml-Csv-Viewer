@@ -205,7 +205,7 @@ function firstColumn(tr, indent, colName, clazz) {
   td.style.position = 'relative';
   td.textContent = colName;
   if (clazz) {
-  td.classList.add(clazz);
+    td.classList.add(clazz);
   }
   tr.appendChild(td)
 }
@@ -216,8 +216,8 @@ function nonFirstColumn(tr, value, clazz) {
   td.textContent = value;
   if (clazz) {
     td.classList.add(clazz);
-    }
-    tr.appendChild(td)
+  }
+  tr.appendChild(td)
 }
 
 function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
@@ -259,7 +259,6 @@ function addTableData(data, columns, onclick, options) {
   let newIndent = -1;
   let startRows = [];
   let priorFields = [];
-  let doingExpense = false;
 
   for (var i = 0; i < data.length; i++) {
     var tr = document.createElement('tr');
@@ -332,11 +331,6 @@ function addTableData(data, columns, onclick, options) {
           indent = 0;
         }
 
-        if (typeof value == 'string'
-          && value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-          doingExpense = true;
-        }
-
         // Set rootIndent AFTER appending Subtotal using prior indentation
         if (incomeExpense in options && typeof value == 'string'
           && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
@@ -373,9 +367,12 @@ function addTableData(data, columns, onclick, options) {
           }
         }
       }
-      td.textContent = value;
       // Here is where we might decide to indicate 
       // concern based on values and doingExpense
+      if (data[i]['__highlight__'] && data[i]['__highlight__'][name]) {
+        td.classList.add(data[i]['__highlight__'][name]);
+      }
+      td.textContent = value;
       tr.appendChild(td)
       ++colNum;
     });

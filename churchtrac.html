@@ -10,14 +10,20 @@
     var title = 'ChurchTrac Budget Report Tool'
     var revision = '1.0';
     var revisionstring = title + ', Revision ' + revision;
-	
+
     // String constants for spelling consistency
     var combinedName = 'combined';
     var currentBudgetName = '* Current Budget';
     var currentActualName = '* Current Actual';
-    var currentdifferenceName = '* Current Difference';
+    var currentDifferenceName = '* Current Difference';
     var ytdBudgetName = 'YTD Budget';
     var ytdActualName = 'YTD Actual';
+    var ytdDiffrenceName = 'YTD Difference';
+
+    var highlightGroups = [
+      [currentBudgetName, currentActualName, currentDifferenceName],
+      [ytdBudgetName, ytdActualName, ytdDiffrenceName]
+    ];
 
     var pageheadingSettings = 'pageheadingSettings';
 
@@ -64,8 +70,8 @@
         list.push({ 'name': 'Category', 'text': 'Category' });
         list.push({ 'name': currentBudgetName, 'text': currentBudgetName });
         list.push({ 'name': currentActualName, 'text': currentActualName });
-        list.push({ 'name': currentdifferenceName, 'text': currentdifferenceName });
-        
+        list.push({ 'name': currentDifferenceName, 'text': currentDifferenceName });
+
         createColumnList(combinedName, Object.keys(data[0]), list);
 
         if (prior) {
@@ -125,16 +131,20 @@
       elem.style = "display: block";
     }
 
-    function subtract(current, prior) {
-      if (isNaN(prior) || prior.length == 0) {
-        return current;
+    function subtract(first, second) {
+      let compare = 0;
+      let value = '';
+      if (isNaN(second) || second.length == 0) {
+        value = first;
       }
-      else if (isNaN(current) || current.length == 0) {
-        return '';
+      else if (!isNaN(first) && first.length > 0) {
+        let diff = Number(first) - Number(second);
+        if (diff) {
+          compare = Math.sign(diff);
+        }
+        value = diff + '';
       }
-      else {
-        return (Number(current) - Number(prior)) + '';
-      }
+      return { value, compare };
     }
 
     /* Process current and prior reports and generate a combined version
@@ -148,10 +158,13 @@
       if (current.length == prior.length) {
         for (var i = 0; i < current.length; ++i) {
           combined[i] = current[i];
-          combined[i][currentActualName] = subtract(current[i][ytdActualName], prior[i][ytdActualName]);
-          combined[i][currentBudgetName] = subtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
-          combined[i][currentdifferenceName] = subtract(current[i][currentActualName], current[i][currentBudgetName]);
-          
+          var result = subtract(current[i][ytdActualName], prior[i][ytdActualName]);
+          combined[i][currentActualName] = result.value;
+          result = subtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
+          combined[i][currentBudgetName] = result.value;
+          result = subtract(current[i][currentActualName], current[i][currentBudgetName]);
+          combined[i][currentDifferenceName] = result.value;
+
         }
         fileData[combinedName] = combined;
         return true;
@@ -159,7 +172,30 @@
       else {
         return false;
       }
+    }
 
+    function ComputeHighlights(current) {
+      let doingExpense = false;
+
+      for (var i = 0; i < current.length; ++i) {
+        if (current[i]['Category'].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+          doingExpense = true;
+        }
+        current[i]['__highlight__'] = {};
+
+        let highlight = current[i]['__highlight__'];
+
+        highlightGroups.forEach(function (group) {
+          if (current[i][group[0]] != '0') {
+            var result = subtract(current[i][group[0]], current[i][group[1]]);
+            if ((result.compare < 0 && doingExpense) || (result.compare > 0 && !doingExpense)) {
+              group.forEach(function (column) {
+                highlight[column] = 'highlight';
+              })
+            }
+          }
+        });
+      }
     }
 
     function showData() {
@@ -173,7 +209,7 @@
 
       elem.replaceChildren();
 
-        if (thisContent) {
+      if (thisContent) {
         try {
           var dodate = document.getElementById('printed-on');
 
@@ -196,10 +232,11 @@
           if (priorContent) {
             columns = getColumnOptions(combinedName);
             combine();
+            ComputeHighlights(fileData[combinedName]);
             createTable(fileData[combinedName], elem, thisContent, columns,
               noCsvHeader, onclick, format);
             var footer = document.createElement('h4');
-            if (currentActualName in columns || currentBudgetName in columns || currentdifferenceName in columns) {
+            if (currentActualName in columns || currentBudgetName in columns || currentDifferenceName in columns) {
               footer.textContent = '* "Current" covers the interval from '
                 + priorContent + " to " + thisContent;
               footer.style = "display: inline-block";
@@ -207,6 +244,7 @@
             }
           }
           else {
+            ComputeHighlights(fileData[thisContent]);
             createTable(fileData[thisContent], elem, thisContent, columns,
               noCsvHeader, onclick, format);
           }
