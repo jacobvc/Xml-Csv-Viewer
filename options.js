@@ -17,8 +17,7 @@
 
     Required CSS:
 
-        p#tooltip-text, .container, amd .contained
-        Optional .group
+      p#tooltip-text, .container, .contained, (optional) .group
 */
 
 /* Populate 'containerElem' with options from 'list' using 'scope' to qualify
