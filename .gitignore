@@ -102,3 +102,6 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Document types
+*.docx    binary
