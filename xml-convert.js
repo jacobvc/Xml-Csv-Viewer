@@ -1,5 +1,3 @@
-/* Content specific operations 
- */
 "use strict";
 
 // Change XML to JSON

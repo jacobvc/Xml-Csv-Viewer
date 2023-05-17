@@ -1,15 +1,22 @@
 "use strict";
-/*  Present and query a set of options
+/*  Present and query a set of options with selection checkboxes 
 
-    Typical html (single tooltip-text element for entire page)
-    OPTIONAL group DIV
+    Required tooltip html:
+    
+    Single id="tooltip-text" element for entire page)
 
-    <p id="tooltip-text">The tooltip text.</p>
+    Example: <p id="tooltip-text">The tooltip text.</p>
+
+    Required options html:
+
+    Example (Note - group DIV is optional):
+
     <div class="group">Option Label
         <div id="<Container element ID>" class="container"></div>
     </div>
 
-    CSS required for:
+    Required CSS:
+
         p#tooltip-text, .container, amd .contained
         Optional .group
 */
@@ -62,7 +69,6 @@ function populateOptions(containerElem, list, scope, isChecked) {
 
         // change display to 'none' on mouseleave
         document.getElementById("iddiv-" + idPart).addEventListener('mouseleave', () => {
-          //alert("mouseleave");
           tooltip.style.display = 'none';
         }, false);
       }
@@ -71,8 +77,9 @@ function populateOptions(containerElem, list, scope, isChecked) {
   }
 }
 
-/* Get selected options as an array of option names. 'list' and 'scope' 
-   are the same values used for populateOptions().
+/* Get selected options of 'scope' in 'list' as an array of option names.
+ *
+ * Save current option settings to localStorage
  */
 function getOptions(list, scope) {
   let checked = {};
@@ -90,6 +97,8 @@ function getOptions(list, scope) {
   return checked;
 }
 
+/* Override checked state from values previously saved in localStorage
+ */
 function overrideOptions(list, scope) {
   var checked = JSON.parse(localStorage.getItem(scope + 'settings'));
   if (list && checked) {
@@ -101,13 +110,15 @@ function overrideOptions(list, scope) {
   }
 }
 
-function setAllOptions(list, scope, checked) {
+/* Override checked state of all options of 'scope' in 'list' to 'isChecked'
+ */
+function setAllOptions(list, scope, isChecked) {
   if (list) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
       if (elem) {
-        elem.checked = checked;
+        elem.checked = isChecked;
       }
     });
   }

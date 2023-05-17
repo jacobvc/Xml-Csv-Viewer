@@ -7,8 +7,10 @@
   <script type="text/javascript" src="options.js"></script>
   <script type="text/javascript" src="table-create.js"></script>
   <script>
+    // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
     var revision = '1.0';
+    
     var revisionstring = title + ', Revision ' + revision;
 
     // String constants for spelling consistency
@@ -20,6 +22,7 @@
     var ytdActualName = 'YTD Actual';
     var ytdDiffrenceName = 'YTD Difference';
 
+    // Highlight groups - Arrays of [budget column, actual column, related columns ..]
     var highlightGroups = [
       [currentBudgetName, currentActualName, currentDifferenceName],
       [ytdBudgetName, ytdActualName, ytdDiffrenceName]

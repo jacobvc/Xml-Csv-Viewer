@@ -5,8 +5,8 @@ import getopt
 help = '''
 Create a standalone html file, starting with a working html
 file and one or more .js and .css files. Exclude the references
-to those files and embed them by inserting the .js files 
-contents before </script> and the .css files before </style>
+to those files and embed them by inserting the .js file 
+contents before </script> and the .css file contents before </style>
 
 usage: combine.py [-h][-o outputfilename] inputfilename js-or-css-filename[..]
 '''
@@ -80,7 +80,7 @@ try:
     if (len(values) > 1):
         combine(values)
     else:
-        print('Input and at least one combine filename required')
+        print('Input and at least one combined filename required')
 
 except getopt.error as err:
     # output error, and return with an error code
