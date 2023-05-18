@@ -70,9 +70,8 @@ If description is present, it is used for tooltip text.
 
 Note that scope + name are transformed into valid HTML ID's
 #### function getOptions(list, scope)
-Get selected options of 'scope' in 'list' as an array of option names.
-
-Save current option settings to localStorage
+Get selected options of 'scope' in 'list' as an array of option names and
+Save as option settings to localStorage
 #### function overrideOptions(list, scope)
 Override checked state from values previously saved in localStorage
 #### function setAllOptions(list, scope, isChecked)
