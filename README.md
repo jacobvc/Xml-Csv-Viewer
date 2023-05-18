@@ -40,7 +40,7 @@ Complex fields are displayed as "[OBJECT]".
 When a row's values are displayed in a form view. Any complex ([OBJECT]) columns are expanded in that form view.
 
 ### options.js
-Present and query a set of options with selection checkboxes 
+Javascript support utility to present and query a set of options with selection checkboxes 
 
 Required html for tooltip:
     
@@ -58,6 +58,27 @@ Example (Note - group DIV is optional):
     </div>
 
 Required CSS:  p#tooltip-text, .container, .contained, (optional) .group
+
+The functions in this module are:
+
+#### function populateOptions(containerElem, list, scope, isChecked)
+Populate 'containerElem' with options from 'list' using 'scope' to qualify
+element ID's, and initializing state to 'isChecked'
+
+'list' is an array of objects containing 'name', 'text', and optional 'description'.
+If description is present, it is used for tooltip text.
+
+Note that scope + name are transformed into valid HTML ID's
+#### function getOptions(list, scope)
+Get selected options of 'scope' in 'list' as an array of option names.
+
+Save current option settings to localStorage
+#### function overrideOptions(list, scope)
+Override checked state from values previously saved in localStorage
+#### function setAllOptions(list, scope, isChecked)
+Override checked state of all options of 'scope' in 'list' to 'isChecked'
+#### function _createHtmlId(value)
+Utility function to create properly formed ID
 
 ### xml-convert.js
 Convert decoded XML into a collection of 'tables' that are compatible with the table display mechanism
