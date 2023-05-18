@@ -286,11 +286,9 @@
     };
 
     // Event handler (if onclick is specified in showData)
-    function detailForm(e) {
-      var t = e.target;
-
+    function detailForm(src) {
       var formElem = document.getElementById("dataFormId");
-      populateForm(e.target.parentElement.src, thisContent, formElem);
+      populateForm(src, thisContent, formElem);
       showDataform();
     }
 

@@ -134,17 +134,22 @@ function addFormField(elem, name, label, value) {
     TABLE
 
 */
-function createTable(data, elem, title, columns, noHeader, onclick, options) {
+function createTable(data, elem, title, columns, noHeader, showDetail, options) {
   if (data.length == 1) {
-    populateForm(data[0], title, elem);
+    if (showDetail) {
+      showDetail(data[0]);
+    }
+    else {
+      populateForm(data[0], title, elem);
+    }
     return;
   }
   var titleElem = document.createElement('h3');
   titleElem.textContent = title;
   elem.appendChild(titleElem);
-  createOnlyTable(data, elem, columns, noHeader, onclick, options)
+  createOnlyTable(data, elem, columns, noHeader, showDetail, options)
 }
-function createOnlyTable(data, elem, columns, noHeader, onclick, options) {
+function createOnlyTable(data, elem, columns, noHeader, showDetail, options) {
   var table = document.createElement('table');
   elem.appendChild(table);
   if (columns.length == 0 && data.length > 0) {
@@ -153,7 +158,7 @@ function createOnlyTable(data, elem, columns, noHeader, onclick, options) {
   if (!noHeader) {
     table.appendChild(createTableColumns(data, table, columns, options));
   }
-  table.appendChild(addTableData(data, columns, onclick, options));
+  table.appendChild(addTableData(data, columns, showDetail, options));
 }
 
 function createTableColumns(data, table, columns, options) {
@@ -248,7 +253,7 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
   });
 }
 
-function addTableData(data, columns, onclick, options) {
+function addTableData(data, columns, showDetail, options) {
   var tbody = document.createElement('tbody');
 
   var frag = document.createDocumentFragment(),
@@ -381,8 +386,10 @@ function addTableData(data, columns, onclick, options) {
   }
 
   tbody.appendChild(frag);
-  if (onclick) {
-    tbody.addEventListener('click', onclick, false);
+  if (showDetail) {
+    tbody.addEventListener('click', function (e) {
+      showDetail(e.target.parentElement.src);
+    }, false);
   }
 
   return tbody;
