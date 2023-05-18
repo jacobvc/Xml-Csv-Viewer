@@ -1,5 +1,7 @@
 # Xml-Csv-Viewer
-Pure javascript web app(s) to read and display / print CSV or XML file content as HTML tables
+Pure javascript web app(s) to read and display / print CSV or XML file content as HTML tables.
+
+Run by launching xmlcsv.html or churchtrac.html from a directory containing all of the files, or launch any of the html files found in the standalone directory.
 
 ## xmlcsv.html - XML / CSV Viewer
 View the contents of an XML or CSV file.
