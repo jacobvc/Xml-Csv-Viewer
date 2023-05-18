@@ -6,7 +6,7 @@ View the contents of an XML or CSV file.
 
 The "Choose File" button will browse for a file. Checkmark desired columns / features, and press "(re)Display". 
 
-The selected content will appear as a table below the "(re)Display" button. See [table-create.js](#table-create.js) for
+The selected content will appear as a table below the "(re)Display" button. See [table-create.js](#table-createjs) for
 more details about the table display.
 
 In the case of XML, each 'table' in the XML File will be available under "Content".
