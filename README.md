@@ -33,7 +33,7 @@ Create a table with 'title' in HTML element 'elem' using 'columns' from each ins
 
 Data normally contains header info in first instance, but 'noHeader' is also supported. 
 
-For data instances containg the reserved '__highlight__' value, the included Column-Name:css-class values are applied to the relevant cells
+For data instances containg the reserved '\_\_highlight\_\_' member, the included Column-Name:css-class values are applied to the relevant cells
 
 If 'showDetail' is provided, row content is displayed as a form when the row is clicked
 
