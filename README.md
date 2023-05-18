@@ -37,7 +37,7 @@ If 'showDetail' is provided, row content is displayed as a form when the row is 
 
 Complex fields are displayed as "[OBJECT]".
 
-Clicking on any row of displayed data will display all of that row's values in a form view. Any complex ([OBJECT]) columns are expanded in that form view.
+When a row's values are displayed in a form view. Any complex ([OBJECT]) columns are expanded in that form view.
 
 ### options.js
 Present and query a set of options with selection checkboxes 
@@ -60,9 +60,10 @@ Example (Note - group DIV is optional):
 Required CSS:  p#tooltip-text, .container, .contained, (optional) .group
 
 ### xml-convert.js
+Convert decoded XML into a collection of 'tables' that are compatible with the table display mechanism
 
 ## Tools
 ### combine.py / combine.bat
-The python script (typically executed from combine.bat) generates a standalone (single file versions of
+The python script (typically executed from combine.bat) generates standalone (single file versions of
 the) html files into the standalone directory.
 
