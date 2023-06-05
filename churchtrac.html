@@ -9,9 +9,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.0';
+    var revision = '1.1';
     
-    var revisionstring = title + ', Revision ' + revision;
+    var revisionstring = title + ', Revision ' + revision + ", 6/2023";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -65,7 +65,14 @@
         data = d3.csvParse(content);
         fileData[contentName] = data;
 
-        let list1 = [];
+        if (prior) {
+          priorContent = contentName;
+          contentName = combinedName
+        }
+        else {
+          thisContent = contentName;
+
+          let list1 = [];
         list1.push({ 'name': 'Category', 'text': 'Category' });
         createColumnList(contentName, Object.keys(data[0]), list1);
 
@@ -74,15 +81,7 @@
         list.push({ 'name': currentBudgetName, 'text': currentBudgetName });
         list.push({ 'name': currentActualName, 'text': currentActualName });
         list.push({ 'name': currentDifferenceName, 'text': currentDifferenceName });
-
         createColumnList(combinedName, Object.keys(data[0]), list);
-
-        if (prior) {
-          priorContent = contentName;
-          contentName = combinedName
-        }
-        else {
-          thisContent = contentName;
 
           let objectElem = document.getElementById("id-object");
           objectElem.textContent = " - " + contentName;

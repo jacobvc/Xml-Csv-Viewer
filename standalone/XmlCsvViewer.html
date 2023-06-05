@@ -637,7 +637,7 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
       let result = "";
       for (var i = start; i < end; i++) {
         let value = data[i][key];
-        if (isNaN(value)) {
+        if (isNaN(value) || value.length == 0) {
           result = "";
           break;
         }
