@@ -25,6 +25,7 @@ th {
 
   text-align: left;
   padding: 8px;
+  min-height: 20px;
   max-width: 20%;
 }
 
@@ -94,9 +95,18 @@ fieldset {
   overflow-y: scroll;
 }
 
+textarea{
+  width: 80%;
+  height: 200px;
+}
+
 .highlight {
   background-color: cornsilk;
   font-weight: bold;
+}
+
+.error {
+  color: red;
 }
 
 .input-span {

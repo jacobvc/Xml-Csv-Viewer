@@ -7,7 +7,7 @@
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
     var revision = '1.1';
-    
+
     var revisionstring = title + ', Revision ' + revision + ", 6/2023";
 
     // String constants for spelling consistency
@@ -30,6 +30,7 @@
     // Name of selected content
     var thisContent = '';
     var priorContent = '';
+    var rowOrder = [];
 
     // Data from the file as named array objects.
     let fileData = {};
@@ -39,6 +40,26 @@
 
     // File reader
     var reader = new FileReader();
+    var rowreader = new FileReader();
+
+    function readRows(id) {
+      let input = document.getElementById(id);
+      var currentFile = input.files[0];
+      rowreader.readAsText(currentFile);
+
+      rowreader.onload = function () {
+        //rowOrder = JSON.parse(rowreader.result);
+        rowOrder = [];
+        lines = rowreader.result.split(/\r?\n/);
+
+        lines.forEach(function (line) {
+          rowOrder.push(line.trim());
+        });
+      };
+      rowreader.onerror = function () {
+        console.log(rowreader.error);
+      };
+    }
 
     function readFile(id, prior) {
       let input = document.getElementById(id);
@@ -70,15 +91,15 @@
           thisContent = contentName;
 
           let list1 = [];
-        list1.push({ 'name': 'Category', 'text': 'Category' });
-        createColumnList(contentName, Object.keys(data[0]), list1);
+          list1.push({ 'name': 'Category', 'text': 'Category' });
+          createColumnList(contentName, Object.keys(data[0]), list1);
 
-        let list = [];
-        list.push({ 'name': 'Category', 'text': 'Category' });
-        list.push({ 'name': currentBudgetName, 'text': currentBudgetName });
-        list.push({ 'name': currentActualName, 'text': currentActualName });
-        list.push({ 'name': currentDifferenceName, 'text': currentDifferenceName });
-        createColumnList(combinedName, Object.keys(data[0]), list);
+          let list = [];
+          list.push({ 'name': 'Category', 'text': 'Category' });
+          list.push({ 'name': currentBudgetName, 'text': currentBudgetName });
+          list.push({ 'name': currentActualName, 'text': currentActualName });
+          list.push({ 'name': currentDifferenceName, 'text': currentDifferenceName });
+          createColumnList(combinedName, Object.keys(data[0]), list);
 
           let objectElem = document.getElementById("id-object");
           objectElem.textContent = " - " + contentName;
@@ -173,11 +194,43 @@
       }
     }
 
+    function reorder(current) {
+      if (rowOrder.length > 0) {
+        // There is a reorder spec
+        if (rowOrder.length == current.length) {
+          for (var r = 0; r < rowOrder.length; ++r) {
+            var found = false;
+            for (var i = r; i < current.length; ++i) {
+              if (current[i]['Category'].trim() == rowOrder[r]) {
+                let tmp = current[r];
+                current[r] = current[i];
+                current[i] = tmp;
+                found = true;
+                break;
+              }
+            }
+            if (!found) {
+              throw new Error("Budget Row Order Column '" + rowOrder[r] + "' not found");
+            }
+          }
+        }
+        else {
+          if (rowOrder.length > current.length) {
+            throw new Error("Budget Row Order contains too many rows");
+          }
+          else {
+            throw new Error("Budget Row Order contains too few rows");
+          }
+        }
+      }
+    }
+
     function ClearHighlights(current) {
       for (var i = 0; i < current.length; ++i) {
         current[i]['__highlight__'] = {};
       }
     }
+
     function ComputeHighlights(current) {
       let doingExpense = false;
 
@@ -209,6 +262,8 @@
       let onclick = null; // detailForm;
       let noCsvHeader = false;
 
+      let err = document.getElementById('id-error');
+      err.innerText = "";
       hideDataform();
 
       elem.replaceChildren();
@@ -237,6 +292,7 @@
           if (priorContent) {
             columns = getColumnOptions(combinedName);
             combine();
+            reorder(fileData[combinedName])
             if (highlight.checked) {
               ComputeHighlights(fileData[combinedName]);
             }
@@ -254,6 +310,7 @@
             }
           }
           else {
+            reorder(fileData[thisContent])
             if (highlight.checked) {
               ComputeHighlights(fileData[thisContent]);
             }
@@ -272,11 +329,11 @@
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
           localStorage.setItem('highlight', JSON.stringify(highlight.checked));
         } catch (error) {
-          elem.textContent = 'Malformed file: ' + error.message;
+          err.textContent = 'Rendering error: ' + error.message;
         }
       }
       else {
-        elem.textContent = '"This Month" file not loaded';
+        err.textContent = '"This Month" file not loaded';
       }
       showDataTable();
     };
@@ -286,6 +343,65 @@
       var formElem = document.getElementById("dataFormId");
       populateForm(src, thisContent, formElem);
       showDataform();
+    }
+
+    function CreateRowList() {
+      if (thisContent) {
+        var current = fileData[thisContent];
+        if (priorContent && fileData[combinedName]) {
+          current = fileData[combinedName]
+        }
+        files = [];
+        for (var i = 0; i < current.length; ++i) {
+          files.push(current[i]['Category']);
+        }
+        const file = new File(files, 'output.txt', { type: "text/plain" });
+      }
+      else {
+        alert("No content loaded");
+      }
+    }
+
+    function showRowOrder() {
+      if (thisContent) {
+        var current = fileData[thisContent];
+        if (priorContent && fileData[combinedName]) {
+          current = fileData[combinedName]
+        }
+      var name = "rowOrder"
+      var elem = document.getElementById("dataFormId");
+      elem.replaceChildren();
+      var titleElem = document.createElement('h2');
+      titleElem.textContent = "Budget Row Order";
+      elem.appendChild(titleElem);
+
+      var instructions = document.createElement('p');
+      instructions.textContent
+      = 'This is the current row order. It may change if you "Choose File"'
+      + 'a Row Order file and "(re)Display\n\n'
+      + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
+      elem.appendChild(instructions);
+
+      var value = '';
+      for (var i = 0; i < current.length; ++i) {
+        value += current[i]['Category'] + '\n';
+      }
+
+
+      var inputElem = document.createElement('textarea');
+      //inputElem.type = 'textarea';
+      inputElem.id = name;
+      inputElem.name = name;
+      inputElem.value = value;
+      //inputElem.size = 20;
+
+      elem.appendChild(inputElem);
+
+      showDataform();
+    }
+      else {
+        alert("No content loaded");
+      }
     }
 
     // Visibility
@@ -911,6 +1027,7 @@ th {
 
   text-align: left;
   padding: 8px;
+  min-height: 20px;
   max-width: 20%;
 }
 
@@ -980,9 +1097,18 @@ fieldset {
   overflow-y: scroll;
 }
 
+textarea{
+  width: 80%;
+  height: 200px;
+}
+
 .highlight {
   background-color: cornsilk;
   font-weight: bold;
+}
+
+.error {
+  color: red;
 }
 
 .input-span {
@@ -1061,12 +1187,16 @@ p#tooltip-text:before {
 
     <div id="config">
       <span class="input-span">
-        This Month <input type="file" id="id-thismonth" style="width:300px;" accept="text/csv"
+        This Month <input type="file" id="id-thismonth" style="width:303px;" accept="text/csv"
           onclick="type=''; type='file';" onchange="readFile('id-thismonth', false)">
       </span>
       <span class="input-span">
         Prior Month <input type="file" id="id-nextmonth" accept="text/csv" onclick="type=''; type='file';"
           style="width:300px;" onchange="readFile('id-nextmonth', true)">
+      </span>
+      <span class="input-span">
+        Budget Row <input type="button" onclick="showRowOrder()" value="Order" /> <input type="file" id="id-rows"
+          accept="text/plain" onclick="type=''; type='file';" style="width:257px;" onchange="readRows('id-rows')">
       </span>
       <span class='input-span'> Page Heading
         <input id="pageheading" size="60" type="text" />
@@ -1099,6 +1229,7 @@ p#tooltip-text:before {
       <input style="padding: 6px; float: right" type="button" value="Close" onclick="hideDataform()">
     </fieldset>
   </form>
+  <div id="id-error" class="error"></div>
   <div id="id-data"></div>
 </body>
 
