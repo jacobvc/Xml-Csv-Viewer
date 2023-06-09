@@ -129,7 +129,7 @@
     // Options
     function populateFormatOptions(elemId) {
       var formElem = document.getElementById(elemId);
-      populateOptions(formElem, tableOptions, 'fmt-', false);
+      populateOptions(formElem, tableOptions, 'fmt-', false, [sorting]);
       overrideOptions(tableOptions, 'fmt-');
     }
     function getFormatOptions() {
@@ -483,7 +483,8 @@
         All</button>
       <div id="id-columns" class="container"></div>
     </div>
-    <div class="group">Format
+    <div class="group">Format<br><button onclick="setAllOptions(tableOptions, 'fmt-', true);">Select
+      All</button>
       <div id="id-format" class="container"></div>
     </div>
 
