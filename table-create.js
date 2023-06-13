@@ -372,8 +372,7 @@ function addTableData(data, columns, showDetail, options) {
           }
         }
       }
-      // Here is where we might decide to indicate 
-      // concern based on values and doingExpense
+      // Here is where we apply precomputed "highlight" styles 
       if (data[i]['__highlight__'] && data[i]['__highlight__'][name]) {
         td.classList.add(data[i]['__highlight__'][name]);
       }
