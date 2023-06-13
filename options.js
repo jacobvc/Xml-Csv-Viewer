@@ -28,50 +28,53 @@
 
    Note that scope + name are transformed into valid HTML ID's
  */
-function populateOptions(containerElem, list, scope, isChecked) {
+function populateOptions(containerElem, list, scope, isChecked, exclude = []) {
   containerElem.replaceChildren();
   if (list) {
     const tooltip = document.getElementById("tooltip-text");
     list.forEach(function (item) {
-      let idPart = _createHtmlId(scope + item.name);
+      if (exclude.indexOf(item.name) < 0) {
+        let idPart = _createHtmlId(scope + item.name);
 
-      var divElem = document.createElement('div');
-      divElem.id = "iddiv-" + idPart;
-      divElem.className = "contained";
+        var divElem = document.createElement('div');
+        divElem.id = "iddiv-" + idPart;
+        divElem.className = "contained";
 
-      var inputElem = document.createElement('input');
-      inputElem.type = 'checkbox';
-      inputElem.id = 'id-' + idPart;
-      inputElem.name = item.name;
-      inputElem.value = item.name;
-      inputElem.checked = isChecked;
+        var inputElem = document.createElement('input');
+        inputElem.type = 'checkbox';
+        inputElem.id = 'id-' + idPart;
+        inputElem.name = item.name;
+        inputElem.value = item.name;
+        inputElem.checked = isChecked;
 
-      var labelElem = document.createElement('label');
-      labelElem.htmlFor = 'id-' + idPart;
-      labelElem.textContent = item.text;
+        var labelElem = document.createElement('label');
+        labelElem.htmlFor = 'id-' + idPart;
+        labelElem.textContent = item.text;
 
-      divElem.appendChild(inputElem);
-      divElem.appendChild(labelElem);
+        divElem.appendChild(inputElem);
+        divElem.appendChild(labelElem);
 
-      containerElem.appendChild(divElem);
+        containerElem.appendChild(divElem);
+      }
     });
     list.forEach(function (item) {
-      let idPart = _createHtmlId(scope + item.name);
-      if (item.description) {
-        document.getElementById("iddiv-" + idPart).addEventListener('mouseenter', (event) => {
-          tooltip.style.display = 'block';
-          tooltip.textContent = item.description;
-          tooltip.style.top = (event.target.offsetTop - 60) + 'px';
-          tooltip.style.left = (event.target.offsetLeft
-            + (event.target.clientWidth - tooltip.clientWidth) / 2) + 'px';
-        }, false);
+      if (exclude.indexOf(item.name) < 0) {
+        let idPart = _createHtmlId(scope + item.name);
+        if (item.description) {
+          document.getElementById("iddiv-" + idPart).addEventListener('mouseenter', (event) => {
+            tooltip.style.display = 'block';
+            tooltip.textContent = item.description;
+            tooltip.style.top = (event.target.offsetTop - 60) + 'px';
+            tooltip.style.left = (event.target.offsetLeft
+              + (event.target.clientWidth - tooltip.clientWidth) / 2) + 'px';
+          }, false);
 
-        // change display to 'none' on mouseleave
-        document.getElementById("iddiv-" + idPart).addEventListener('mouseleave', () => {
-          tooltip.style.display = 'none';
-        }, false);
+          // change display to 'none' on mouseleave
+          document.getElementById("iddiv-" + idPart).addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+          }, false);
+        }
       }
-
     });
   }
 }
@@ -103,8 +106,10 @@ function overrideOptions(list, scope) {
   if (list && checked) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
-      var elem = document.getElementById('id-' + idPart);
-      elem.checked = (elem && elem.name in checked);
+        var elem = document.getElementById('id-' + idPart);
+        if (elem) {
+          elem.checked = (elem.name in checked);
+      }
     });
   }
 }
