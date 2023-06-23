@@ -9,7 +9,7 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.1';
+    var revision = '1.2';
 
     var revisionstring = title + ', Revision ' + revision + ", 6/2023";
 
@@ -154,22 +154,6 @@
       elem.style = "display: block";
     }
 
-    function subtract(first, second) {
-      let compare = 0;
-      let value = '';
-      if (isNaN(second) || second.length == 0) {
-        value = first;
-      }
-      else if (!isNaN(first) && first.length > 0) {
-        let diff = Number(first) - Number(second);
-        if (diff) {
-          compare = Math.sign(diff);
-        }
-        value = diff + '';
-      }
-      return { value, compare };
-    }
-
     /* Process current and prior reports and generate a combined version
      * that includes current plus current actual and budget columns that
      * contain the difference between prior and current
@@ -181,11 +165,11 @@
       if (current.length == prior.length) {
         for (var i = 0; i < current.length; ++i) {
           combined[i] = current[i];
-          var result = subtract(current[i][ytdActualName], prior[i][ytdActualName]);
+          var result = columnSubtract(current[i][ytdActualName], prior[i][ytdActualName]);
           combined[i][currentActualName] = result.value;
-          result = subtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
+          result = columnSubtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
           combined[i][currentBudgetName] = result.value;
-          result = subtract(current[i][currentActualName], current[i][currentBudgetName]);
+          result = columnSubtract(current[i][currentActualName], current[i][currentBudgetName]);
           combined[i][currentDifferenceName] = result.value;
 
         }
@@ -228,36 +212,6 @@
       }
     }
 
-    function ClearHighlights(current) {
-      for (var i = 0; i < current.length; ++i) {
-        current[i]['__highlight__'] = {};
-      }
-    }
-
-    function ComputeHighlights(current) {
-      let doingExpense = false;
-
-      for (var i = 0; i < current.length; ++i) {
-        if (current[i]['Category'].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-          doingExpense = true;
-        }
-        current[i]['__highlight__'] = {};
-
-        let highlight = current[i]['__highlight__'];
-
-        highlightGroups.forEach(function (group) {
-          if (current[i][group[0]] != '0') {
-            var result = subtract(current[i][group[0]], current[i][group[1]]);
-            if ((result.compare < 0 && doingExpense) || (result.compare > 0 && !doingExpense)) {
-              group.forEach(function (column) {
-                highlight[column] = 'highlight';
-              })
-            }
-          }
-        });
-      }
-    }
-
     function showData() {
       let elem = document.getElementById('id-data');
       let format = getFormatOptions();
@@ -274,7 +228,6 @@
       if (thisContent) {
         try {
           var dodate = document.getElementById('printed-on');
-          var highlight = document.getElementById('highlight');
 
           var pageheadingInpElem = document.getElementById('pageheading');
           if (pageheadingInpElem.value.trim().length > 0) {
@@ -296,14 +249,8 @@
             columns = getColumnOptions(combinedName);
             combine();
             reorder(fileData[combinedName])
-            if (highlight.checked) {
-              ComputeHighlights(fileData[combinedName]);
-            }
-            else {
-              ClearHighlights(fileData[combinedName]);
-            }
             createTable(fileData[combinedName], elem, thisContent, columns,
-              noCsvHeader, onclick, format);
+              noCsvHeader, onclick, highlightGroups, format);
             var footer = document.createElement('h4');
             if (currentActualName in columns || currentBudgetName in columns || currentDifferenceName in columns) {
               footer.textContent = '* "Current" covers the interval from '
@@ -314,14 +261,8 @@
           }
           else {
             reorder(fileData[thisContent])
-            if (highlight.checked) {
-              ComputeHighlights(fileData[thisContent]);
-            }
-            else {
-              ClearHighlights(fileData[thisContent]);
-            }
             createTable(fileData[thisContent], elem, thisContent, columns,
-              noCsvHeader, onclick, format);
+              noCsvHeader, onclick, highlightGroups, format);
           }
           var span = document.createElement("span");
           span.style = "float:right;";
@@ -330,7 +271,6 @@
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
-          localStorage.setItem('highlight', JSON.stringify(highlight.checked));
         } catch (error) {
           err.textContent = 'Rendering error: ' + error.message;
         }
@@ -430,8 +370,6 @@
       var elem = document.getElementById('pageheading');
       elem.value = localStorage.getItem(pageheadingSettings);
 
-      elem = document.getElementById('highlight');
-      elem.checked = JSON.parse(localStorage.getItem('highlight'));
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
 
@@ -470,8 +408,6 @@
         <input id="pageheading" size="60" type="text" />
       </span>
       <span class="input-span">
-        <label for="highlight"> Highlight</label>
-        <input id="highlight" type="checkbox" checked>
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 

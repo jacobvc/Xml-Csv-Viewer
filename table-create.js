@@ -4,6 +4,7 @@ let incomeExpense = "Income-Expense";
 let subtotal = "Subtotal";
 let blankZeros = "Blank-Zeros";
 let sorting = "sorting";
+let highlight = "highlight";
 
 let tableOptions = [
   {
@@ -26,11 +27,17 @@ let tableOptions = [
     'name': sorting, 'text': 'Sort columns', 'description':
       'Enable sorting by clicking column heading'
   },
-  /*{ 'name' :  subtotal, 'text' : 'nested', 'description': 'nested tooltip' }, */
+  {
+    'name': highlight, 'text': 'Highlight Concerns', 'description':
+      'Highlight under-budget income and over-budget expenses'
+  },
 ];
 
 let incomeCategories = "INCOME CATEGORIES";
 let expenseCategories = "EXPENSE CATEGORIES";
+
+let doingExpense = false;
+
 
 /*
 
@@ -134,7 +141,7 @@ function addFormField(elem, name, label, value) {
     TABLE
 
 */
-function createTable(data, elem, title, columns, noHeader, showDetail, options) {
+function createTable(data, elem, title, columns, noHeader, showDetail, highlightGroups, options) {
   if (data.length == 1) {
     if (showDetail) {
       showDetail(data[0]);
@@ -147,9 +154,9 @@ function createTable(data, elem, title, columns, noHeader, showDetail, options) 
   var titleElem = document.createElement('h3');
   titleElem.textContent = title;
   elem.appendChild(titleElem);
-  createOnlyTable(data, elem, columns, noHeader, showDetail, options)
+  createOnlyTable(data, elem, columns, noHeader, showDetail, highlightGroups, options)
 }
-function createOnlyTable(data, elem, columns, noHeader, showDetail, options) {
+function createOnlyTable(data, elem, columns, noHeader, showDetail, highlightGroups, options) {
   var table = document.createElement('table');
   elem.appendChild(table);
   if (columns.length == 0 && data.length > 0) {
@@ -158,7 +165,7 @@ function createOnlyTable(data, elem, columns, noHeader, showDetail, options) {
   if (!noHeader) {
     table.appendChild(createTableColumns(data, table, columns, options));
   }
-  table.appendChild(addTableData(data, columns, showDetail, options));
+  table.appendChild(addTableData(data, columns, showDetail, highlightGroups, options));
 }
 
 function createTableColumns(data, table, columns, options) {
@@ -215,45 +222,88 @@ function firstColumn(tr, indent, colName, clazz) {
   tr.appendChild(td)
 }
 
-function nonFirstColumn(tr, value, clazz) {
+function nonFirstColumn(tr, value, clazz, clazz2) {
   var td = document.createElement('td');
   td.style.textAlign = 'right';
   td.textContent = value;
   if (clazz) {
     td.classList.add(clazz);
   }
+  if (clazz2) {
+    td.classList.add(clazz2);
+  }
   tr.appendChild(td)
 }
 
-function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
+function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightGroups, options) {
   firstColumn(tr, indent, "Subtotal", "subtotal");
+  var subs = {};
+  var nums = {};
+
   Object.keys(columns).forEach(function (key, col) {
     if (col > 0) { // Already did firstColumn
-      let num = 0;
-      let result = "";
+      nums[key] = 0;
+      subs[key] = "";
       for (var i = start; i < end; i++) {
         let value = data[i][key];
         if (isNaN(value) || value.length == 0) {
-          result = "";
+          subs[key] = "";
           break;
         }
         else {
-          num += Number(value);
-          result = num + "";
+          nums[key] += Number(value);
+          subs[key] = nums[key] + "";
         }
       }
-      if (blankZeros in options && num == 0) {
+    }
+  });
+
+  var tdClass = {}
+  if (highlight in options) {
+    highlightGroups.forEach(function (group) {
+      if (Number(subs[group[0]]) != 0) {
+        var result = columnSubtract(subs[group[0]], subs[group[1]]);
+        if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
+          group.forEach(function (column) {
+            tdClass[column] = 'highlight';
+          })
+        }
+      }
+    });
+  }
+
+
+  Object.keys(columns).forEach(function (key, col) {
+    if (col > 0) { // Already did firstColumn
+      if (blankZeros in options && nums[key] == 0) {
         // Blank zero values
         nonFirstColumn(tr, '', "subtotal");
       }
       else {
-        nonFirstColumn(tr, result, "subtotal");
+        nonFirstColumn(tr, subs[key], "subtotal",
+          tdClass[key] ? tdClass[key] : null);
       }
     }
   });
 }
 
-function addTableData(data, columns, showDetail, options) {
+function columnSubtract(first, second) {
+  let comparison = 0;
+  let value = '';
+  if (isNaN(second) || second.length == 0) {
+    value = first;
+  }
+  else if (!isNaN(first) && first.length > 0) {
+    let diff = Number(first) - Number(second);
+    if (diff) {
+      comparison = Math.sign(diff);
+    }
+    value = diff + '';
+  }
+  return { value, comparison };
+}
+
+function addTableData(data, columns, showDetail, highlightGroups, options) {
   var tbody = document.createElement('tbody');
 
   var frag = document.createDocumentFragment(),
@@ -265,17 +315,42 @@ function addTableData(data, columns, showDetail, options) {
   let startRows = [];
   let priorFields = [];
 
+  // ALWAYS start doing income
+  doingExpense = false;
+
   for (var i = 0; i < data.length; i++) {
     var tr = document.createElement('tr');
     tr.src = data[i];
 
     let colNum = 0;
+
+    var tdClass = {}
+    if (highlight in options) {
+      highlightGroups.forEach(function (group) {
+      if (Number(data[i][group[0]]) != 0) {
+        var result = columnSubtract(data[i][group[0]], data[i][group[1]]);
+        if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
+          group.forEach(function (column) {
+            tdClass[column] = 'highlight';
+          })
+        }
+      }
+    });
+  }
+
     Object.keys(columns).forEach(function (name) {
       let value = data[i][name];
       var td = document.createElement('td');
+      if (tdClass[name]) {
+        td.classList.add(tdClass[name]);
+      }
 
       if (colNum == 0) {
         if (nested in options && typeof value == 'string') {
+          if (value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+            // Doing expense now
+            doingExpense = true;
+          }
           // Indent nested fields
           let fields = value.split(':');
           newIndent = fields.length - 1;
@@ -296,7 +371,7 @@ function addTableData(data, columns, showDetail, options) {
               // Subtotal only if more than one line
               if (subtotal in options && i - startRows[indent] > 1) {
                 appendNumericSubtotal(tr, rootIndent + indent, data, columns,
-                  startRows[indent], i, options);
+                  startRows[indent], i, highlightGroups, options);
                 frag.appendChild(tr);
                 tr = document.createElement('tr');
               }
@@ -372,11 +447,7 @@ function addTableData(data, columns, showDetail, options) {
           }
         }
       }
-      // Here is where we might decide to indicate 
-      // concern based on values and doingExpense
-      if (data[i]['__highlight__'] && data[i]['__highlight__'][name]) {
-        td.classList.add(data[i]['__highlight__'][name]);
-      }
+
       td.textContent = value;
       tr.appendChild(td)
       ++colNum;
