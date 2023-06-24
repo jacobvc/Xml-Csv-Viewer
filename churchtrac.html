@@ -9,7 +9,7 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.1';
+    var revision = '1.2';
 
     var revisionstring = title + ', Revision ' + revision + ", 6/2023";
 
@@ -45,7 +45,7 @@
     var reader = new FileReader();
     var rowreader = new FileReader();
 
-    function readRowOrder(id) {
+    function readRows(id) {
       let input = document.getElementById(id);
       var currentFile = input.files[0];
       rowreader.readAsText(currentFile);
@@ -147,30 +147,11 @@
     }
 
     // Creating and displaying the table
-
-    // Hide 'elemId' and go to print dialog, then unhide upon return
     function printHiding(elemId) {
       var elem = document.getElementById(elemId);
       elem.style = "display: none";
       print();
       elem.style = "display: block";
-    }
-
-    // Subtract second from first and return comparison result and subtracted value
-    function subtract(first, second) {
-      let compare = 0;
-      let value = '';
-      if (isNaN(second) || second.length == 0) {
-        value = first;
-      }
-      else if (!isNaN(first) && first.length > 0) {
-        let diff = Number(first) - Number(second);
-        if (diff) {
-          compare = Math.sign(diff);
-        }
-        value = diff + '';
-      }
-      return { value, compare };
     }
 
     /* Process current and prior reports and generate a combined version
@@ -184,11 +165,11 @@
       if (current.length == prior.length) {
         for (var i = 0; i < current.length; ++i) {
           combined[i] = current[i];
-          var result = subtract(current[i][ytdActualName], prior[i][ytdActualName]);
+          var result = columnSubtract(current[i][ytdActualName], prior[i][ytdActualName]);
           combined[i][currentActualName] = result.value;
-          result = subtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
+          result = columnSubtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
           combined[i][currentBudgetName] = result.value;
-          result = subtract(current[i][currentActualName], current[i][currentBudgetName]);
+          result = columnSubtract(current[i][currentActualName], current[i][currentBudgetName]);
           combined[i][currentDifferenceName] = result.value;
 
         }
@@ -200,16 +181,13 @@
       }
     }
 
-    // Change the order of rows in current to match rowOrder
     function reorder(current) {
       if (rowOrder.length > 0) {
         // There is a reorder spec
         if (rowOrder.length == current.length) {
-          // And it has the correct number of rows
           for (var r = 0; r < rowOrder.length; ++r) {
             var found = false;
             for (var i = r; i < current.length; ++i) {
-              // reorder to match
               if (current[i]['Category'].trim() == rowOrder[r]) {
                 let tmp = current[r];
                 current[r] = current[i];
@@ -234,41 +212,6 @@
       }
     }
 
-     // Set current[i]['__highlight__'] object to empty for each row
-     function ClearHighlights(current) {
-      for (var i = 0; i < current.length; ++i) {
-        current[i]['__highlight__'] = {};
-      }
-    }
-
-    // Add a current[i]['__highlight__'] object to each row, and set
-    // set class name (highlight) for each underbudget income or
-    // overbudget expense item group
-    function ComputeHighlights(current) {
-      let doingExpense = false;
-
-      for (var i = 0; i < current.length; ++i) {
-        if (current[i]['Category'].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-          doingExpense = true;
-        }
-        current[i]['__highlight__'] = {};
-
-        let highlight = current[i]['__highlight__'];
-
-        highlightGroups.forEach(function (group) {
-          if (current[i][group[0]] != '0') {
-            var result = subtract(current[i][group[0]], current[i][group[1]]);
-            if ((result.compare < 0 && doingExpense) || (result.compare > 0 && !doingExpense)) {
-              group.forEach(function (column) {
-                highlight[column] = 'highlight';
-              })
-            }
-          }
-        });
-      }
-    }
-
-    // Render the budget table
     function showData() {
       let elem = document.getElementById('id-data');
       let format = getFormatOptions();
@@ -285,7 +228,6 @@
       if (thisContent) {
         try {
           var dodate = document.getElementById('printed-on');
-          var highlight = document.getElementById('highlight');
 
           var pageheadingInpElem = document.getElementById('pageheading');
           if (pageheadingInpElem.value.trim().length > 0) {
@@ -307,14 +249,8 @@
             columns = getColumnOptions(combinedName);
             combine();
             reorder(fileData[combinedName])
-            if (highlight.checked) {
-              ComputeHighlights(fileData[combinedName]);
-            }
-            else {
-              ClearHighlights(fileData[combinedName]);
-            }
             createTable(fileData[combinedName], elem, thisContent, columns,
-              noCsvHeader, onclick, format);
+              noCsvHeader, onclick, highlightGroups, format);
             var footer = document.createElement('h4');
             if (currentActualName in columns || currentBudgetName in columns || currentDifferenceName in columns) {
               footer.textContent = '* "Current" covers the interval from '
@@ -325,14 +261,8 @@
           }
           else {
             reorder(fileData[thisContent])
-            if (highlight.checked) {
-              ComputeHighlights(fileData[thisContent]);
-            }
-            else {
-              ClearHighlights(fileData[thisContent]);
-            }
             createTable(fileData[thisContent], elem, thisContent, columns,
-              noCsvHeader, onclick, format);
+              noCsvHeader, onclick, highlightGroups, format);
           }
           var span = document.createElement("span");
           span.style = "float:right;";
@@ -341,7 +271,6 @@
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
-          localStorage.setItem('highlight', JSON.stringify(highlight.checked));
         } catch (error) {
           err.textContent = 'Rendering error: ' + error.message;
         }
@@ -359,47 +288,60 @@
       showDataform();
     }
 
-    // Make a popup with a textarea containing the category value
-    // of each row, one per line
-    function showRowOrder() {
+    function CreateRowList() {
       if (thisContent) {
-        // Content is available to process
         var current = fileData[thisContent];
         if (priorContent && fileData[combinedName]) {
-          // There is combined content. Use that instead
           current = fileData[combinedName]
         }
-        // Get the HTML element and create title / instructions
-        var name = "rowOrder"
-        var elem = document.getElementById("dataFormId");
-        elem.replaceChildren();
-        var titleElem = document.createElement('h2');
-        titleElem.textContent = "Budget Row Order";
-        elem.appendChild(titleElem);
-
-        var instructions = document.createElement('p');
-        instructions.textContent
-          = 'This is the current row order. It may change if you "Choose File"'
-          + 'a Row Order file and "(re)Display\n\n'
-          + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
-        elem.appendChild(instructions);
-
-        // Fill value with the categories
-        var value = '';
+        files = [];
         for (var i = 0; i < current.length; ++i) {
-          value += current[i]['Category'] + '\n';
+          files.push(current[i]['Category']);
         }
-
-        // Create a textarea and fill it with value
-        var inputElem = document.createElement('textarea');
-        inputElem.id = name;
-        inputElem.name = name;
-        inputElem.value = value;
-
-        elem.appendChild(inputElem);
-
-        showDataform();
+        const file = new File(files, 'output.txt', { type: "text/plain" });
       }
+      else {
+        alert("No content loaded");
+      }
+    }
+
+    function showRowOrder() {
+      if (thisContent) {
+        var current = fileData[thisContent];
+        if (priorContent && fileData[combinedName]) {
+          current = fileData[combinedName]
+        }
+      var name = "rowOrder"
+      var elem = document.getElementById("dataFormId");
+      elem.replaceChildren();
+      var titleElem = document.createElement('h2');
+      titleElem.textContent = "Budget Row Order";
+      elem.appendChild(titleElem);
+
+      var instructions = document.createElement('p');
+      instructions.textContent
+      = 'This is the current row order. It may change if you "Choose File"'
+      + 'a Row Order file and "(re)Display\n\n'
+      + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
+      elem.appendChild(instructions);
+
+      var value = '';
+      for (var i = 0; i < current.length; ++i) {
+        value += current[i]['Category'] + '\n';
+      }
+
+
+      var inputElem = document.createElement('textarea');
+      //inputElem.type = 'textarea';
+      inputElem.id = name;
+      inputElem.name = name;
+      inputElem.value = value;
+      //inputElem.size = 20;
+
+      elem.appendChild(inputElem);
+
+      showDataform();
+    }
       else {
         alert("No content loaded");
       }
@@ -428,8 +370,6 @@
       var elem = document.getElementById('pageheading');
       elem.value = localStorage.getItem(pageheadingSettings);
 
-      elem = document.getElementById('highlight');
-      elem.checked = JSON.parse(localStorage.getItem('highlight'));
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
 
@@ -462,14 +402,12 @@
       </span>
       <span class="input-span">
         Budget Row <input type="button" onclick="showRowOrder()" value="Order" /> <input type="file" id="id-rows"
-          accept="text/plain" onclick="type=''; type='file';" style="width:244px;" onchange="readRowOrder('id-rows')">
+          accept="text/plain" onclick="type=''; type='file';" style="width:244px;" onchange="readRows('id-rows')">
       </span>
       <span class='input-span'> Page Heading
         <input id="pageheading" size="60" type="text" />
       </span>
       <span class="input-span">
-        <label for="highlight"> Highlight</label>
-        <input id="highlight" type="checkbox" checked>
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 

@@ -6,7 +6,7 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.1';
+    var revision = '1.2';
 
     var revisionstring = title + ', Revision ' + revision + ", 6/2023";
 
@@ -151,22 +151,6 @@
       elem.style = "display: block";
     }
 
-    function subtract(first, second) {
-      let compare = 0;
-      let value = '';
-      if (isNaN(second) || second.length == 0) {
-        value = first;
-      }
-      else if (!isNaN(first) && first.length > 0) {
-        let diff = Number(first) - Number(second);
-        if (diff) {
-          compare = Math.sign(diff);
-        }
-        value = diff + '';
-      }
-      return { value, compare };
-    }
-
     /* Process current and prior reports and generate a combined version
      * that includes current plus current actual and budget columns that
      * contain the difference between prior and current
@@ -178,11 +162,11 @@
       if (current.length == prior.length) {
         for (var i = 0; i < current.length; ++i) {
           combined[i] = current[i];
-          var result = subtract(current[i][ytdActualName], prior[i][ytdActualName]);
+          var result = columnSubtract(current[i][ytdActualName], prior[i][ytdActualName]);
           combined[i][currentActualName] = result.value;
-          result = subtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
+          result = columnSubtract(current[i][ytdBudgetName], prior[i][ytdBudgetName]);
           combined[i][currentBudgetName] = result.value;
-          result = subtract(current[i][currentActualName], current[i][currentBudgetName]);
+          result = columnSubtract(current[i][currentActualName], current[i][currentBudgetName]);
           combined[i][currentDifferenceName] = result.value;
 
         }
@@ -225,36 +209,6 @@
       }
     }
 
-    function ClearHighlights(current) {
-      for (var i = 0; i < current.length; ++i) {
-        current[i]['__highlight__'] = {};
-      }
-    }
-
-    function ComputeHighlights(current) {
-      let doingExpense = false;
-
-      for (var i = 0; i < current.length; ++i) {
-        if (current[i]['Category'].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-          doingExpense = true;
-        }
-        current[i]['__highlight__'] = {};
-
-        let highlight = current[i]['__highlight__'];
-
-        highlightGroups.forEach(function (group) {
-          if (current[i][group[0]] != '0') {
-            var result = subtract(current[i][group[0]], current[i][group[1]]);
-            if ((result.compare < 0 && doingExpense) || (result.compare > 0 && !doingExpense)) {
-              group.forEach(function (column) {
-                highlight[column] = 'highlight';
-              })
-            }
-          }
-        });
-      }
-    }
-
     function showData() {
       let elem = document.getElementById('id-data');
       let format = getFormatOptions();
@@ -271,7 +225,6 @@
       if (thisContent) {
         try {
           var dodate = document.getElementById('printed-on');
-          var highlight = document.getElementById('highlight');
 
           var pageheadingInpElem = document.getElementById('pageheading');
           if (pageheadingInpElem.value.trim().length > 0) {
@@ -293,14 +246,8 @@
             columns = getColumnOptions(combinedName);
             combine();
             reorder(fileData[combinedName])
-            if (highlight.checked) {
-              ComputeHighlights(fileData[combinedName]);
-            }
-            else {
-              ClearHighlights(fileData[combinedName]);
-            }
             createTable(fileData[combinedName], elem, thisContent, columns,
-              noCsvHeader, onclick, format);
+              noCsvHeader, onclick, highlightGroups, format);
             var footer = document.createElement('h4');
             if (currentActualName in columns || currentBudgetName in columns || currentDifferenceName in columns) {
               footer.textContent = '* "Current" covers the interval from '
@@ -311,14 +258,8 @@
           }
           else {
             reorder(fileData[thisContent])
-            if (highlight.checked) {
-              ComputeHighlights(fileData[thisContent]);
-            }
-            else {
-              ClearHighlights(fileData[thisContent]);
-            }
             createTable(fileData[thisContent], elem, thisContent, columns,
-              noCsvHeader, onclick, format);
+              noCsvHeader, onclick, highlightGroups, format);
           }
           var span = document.createElement("span");
           span.style = "float:right;";
@@ -327,7 +268,6 @@
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
-          localStorage.setItem('highlight', JSON.stringify(highlight.checked));
         } catch (error) {
           err.textContent = 'Rendering error: ' + error.message;
         }
@@ -427,8 +367,6 @@
       var elem = document.getElementById('pageheading');
       elem.value = localStorage.getItem(pageheadingSettings);
 
-      elem = document.getElementById('highlight');
-      elem.checked = JSON.parse(localStorage.getItem('highlight'));
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
 
@@ -579,6 +517,7 @@ let incomeExpense = "Income-Expense";
 let subtotal = "Subtotal";
 let blankZeros = "Blank-Zeros";
 let sorting = "sorting";
+let highlight = "highlight";
 
 let tableOptions = [
   {
@@ -601,11 +540,17 @@ let tableOptions = [
     'name': sorting, 'text': 'Sort columns', 'description':
       'Enable sorting by clicking column heading'
   },
-  /*{ 'name' :  subtotal, 'text' : 'nested', 'description': 'nested tooltip' }, */
+  {
+    'name': highlight, 'text': 'Highlight Concerns', 'description':
+      'Highlight under-budget income and over-budget expenses'
+  },
 ];
 
 let incomeCategories = "INCOME CATEGORIES";
 let expenseCategories = "EXPENSE CATEGORIES";
+
+let doingExpense = false;
+
 
 /*
 
@@ -709,7 +654,7 @@ function addFormField(elem, name, label, value) {
     TABLE
 
 */
-function createTable(data, elem, title, columns, noHeader, showDetail, options) {
+function createTable(data, elem, title, columns, noHeader, showDetail, highlightGroups, options) {
   if (data.length == 1) {
     if (showDetail) {
       showDetail(data[0]);
@@ -722,9 +667,9 @@ function createTable(data, elem, title, columns, noHeader, showDetail, options) 
   var titleElem = document.createElement('h3');
   titleElem.textContent = title;
   elem.appendChild(titleElem);
-  createOnlyTable(data, elem, columns, noHeader, showDetail, options)
+  createOnlyTable(data, elem, columns, noHeader, showDetail, highlightGroups, options)
 }
-function createOnlyTable(data, elem, columns, noHeader, showDetail, options) {
+function createOnlyTable(data, elem, columns, noHeader, showDetail, highlightGroups, options) {
   var table = document.createElement('table');
   elem.appendChild(table);
   if (columns.length == 0 && data.length > 0) {
@@ -733,7 +678,7 @@ function createOnlyTable(data, elem, columns, noHeader, showDetail, options) {
   if (!noHeader) {
     table.appendChild(createTableColumns(data, table, columns, options));
   }
-  table.appendChild(addTableData(data, columns, showDetail, options));
+  table.appendChild(addTableData(data, columns, showDetail, highlightGroups, options));
 }
 
 function createTableColumns(data, table, columns, options) {
@@ -790,45 +735,88 @@ function firstColumn(tr, indent, colName, clazz) {
   tr.appendChild(td)
 }
 
-function nonFirstColumn(tr, value, clazz) {
+function nonFirstColumn(tr, value, clazz, clazz2) {
   var td = document.createElement('td');
   td.style.textAlign = 'right';
   td.textContent = value;
   if (clazz) {
     td.classList.add(clazz);
   }
+  if (clazz2) {
+    td.classList.add(clazz2);
+  }
   tr.appendChild(td)
 }
 
-function appendNumericSubtotal(tr, indent, data, columns, start, end, options) {
+function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightGroups, options) {
   firstColumn(tr, indent, "Subtotal", "subtotal");
+  var subs = {};
+  var nums = {};
+
   Object.keys(columns).forEach(function (key, col) {
     if (col > 0) { // Already did firstColumn
-      let num = 0;
-      let result = "";
+      nums[key] = 0;
+      subs[key] = "";
       for (var i = start; i < end; i++) {
         let value = data[i][key];
         if (isNaN(value) || value.length == 0) {
-          result = "";
+          subs[key] = "";
           break;
         }
         else {
-          num += Number(value);
-          result = num + "";
+          nums[key] += Number(value);
+          subs[key] = nums[key] + "";
         }
       }
-      if (blankZeros in options && num == 0) {
+    }
+  });
+
+  var tdClass = {}
+  if (highlight in options) {
+    highlightGroups.forEach(function (group) {
+      if (Number(subs[group[0]]) != 0) {
+        var result = columnSubtract(subs[group[0]], subs[group[1]]);
+        if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
+          group.forEach(function (column) {
+            tdClass[column] = 'highlight';
+          })
+        }
+      }
+    });
+  }
+
+
+  Object.keys(columns).forEach(function (key, col) {
+    if (col > 0) { // Already did firstColumn
+      if (blankZeros in options && nums[key] == 0) {
         // Blank zero values
         nonFirstColumn(tr, '', "subtotal");
       }
       else {
-        nonFirstColumn(tr, result, "subtotal");
+        nonFirstColumn(tr, subs[key], "subtotal",
+          tdClass[key] ? tdClass[key] : null);
       }
     }
   });
 }
 
-function addTableData(data, columns, showDetail, options) {
+function columnSubtract(first, second) {
+  let comparison = 0;
+  let value = '';
+  if (isNaN(second) || second.length == 0) {
+    value = first;
+  }
+  else if (!isNaN(first) && first.length > 0) {
+    let diff = Number(first) - Number(second);
+    if (diff) {
+      comparison = Math.sign(diff);
+    }
+    value = diff + '';
+  }
+  return { value, comparison };
+}
+
+function addTableData(data, columns, showDetail, highlightGroups, options) {
   var tbody = document.createElement('tbody');
 
   var frag = document.createDocumentFragment(),
@@ -840,17 +828,42 @@ function addTableData(data, columns, showDetail, options) {
   let startRows = [];
   let priorFields = [];
 
+  // ALWAYS start doing income
+  doingExpense = false;
+
   for (var i = 0; i < data.length; i++) {
     var tr = document.createElement('tr');
     tr.src = data[i];
 
     let colNum = 0;
+
+    var tdClass = {}
+    if (highlight in options) {
+      highlightGroups.forEach(function (group) {
+      if (Number(data[i][group[0]]) != 0) {
+        var result = columnSubtract(data[i][group[0]], data[i][group[1]]);
+        if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
+          group.forEach(function (column) {
+            tdClass[column] = 'highlight';
+          })
+        }
+      }
+    });
+  }
+
     Object.keys(columns).forEach(function (name) {
       let value = data[i][name];
       var td = document.createElement('td');
+      if (tdClass[name]) {
+        td.classList.add(tdClass[name]);
+      }
 
       if (colNum == 0) {
         if (nested in options && typeof value == 'string') {
+          if (value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+            // Doing expense now
+            doingExpense = true;
+          }
           // Indent nested fields
           let fields = value.split(':');
           newIndent = fields.length - 1;
@@ -871,7 +884,7 @@ function addTableData(data, columns, showDetail, options) {
               // Subtotal only if more than one line
               if (subtotal in options && i - startRows[indent] > 1) {
                 appendNumericSubtotal(tr, rootIndent + indent, data, columns,
-                  startRows[indent], i, options);
+                  startRows[indent], i, highlightGroups, options);
                 frag.appendChild(tr);
                 tr = document.createElement('tr');
               }
@@ -947,11 +960,7 @@ function addTableData(data, columns, showDetail, options) {
           }
         }
       }
-      // Here is where we might decide to indicate 
-      // concern based on values and doingExpense
-      if (data[i]['__highlight__'] && data[i]['__highlight__'][name]) {
-        td.classList.add(data[i]['__highlight__'][name]);
-      }
+
       td.textContent = value;
       tr.appendChild(td)
       ++colNum;
@@ -1207,8 +1216,6 @@ p#tooltip-text:before {
         <input id="pageheading" size="60" type="text" />
       </span>
       <span class="input-span">
-        <label for="highlight"> Highlight</label>
-        <input id="highlight" type="checkbox" checked>
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 

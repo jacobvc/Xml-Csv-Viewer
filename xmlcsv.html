@@ -10,7 +10,7 @@
   <script>
     // Title and revision
     var title = 'XML / CSV Viewer';
-    var revision = '1.0';
+    var revision = '1.2';
 
     var revisionstring = title + ', Revision ' + revision;
 	    let noCsvHeader = false;
@@ -172,7 +172,8 @@
     // Options
     function populateFormatOptions(elemId) {
       var formElem = document.getElementById(elemId);
-      populateOptions(formElem, tableOptions, 'fmt-', false);
+      populateOptions(formElem, tableOptions, 'fmt-', false,
+      [nested, incomeExpense, subtotal, highlight]);
       overrideOptions(tableOptions, 'fmt-');
     }
     function getFormatOptions() {
@@ -224,7 +225,7 @@
           }
 
           createTable(fileData[which], elem, which, columns,
-            noCsvHeader, onClick, format);
+            noCsvHeader, onClick, [], format);
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
