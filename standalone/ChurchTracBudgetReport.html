@@ -6,9 +6,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.2';
+    var revision = '1.3';
 
-    var revisionstring = title + ', Revision ' + revision + ", 6/2023";
+    var revisionstring = title + ', Revision ' + revision + ", 9/2023";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -765,7 +765,7 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
         }
         else {
           nums[key] += Number(value);
-          subs[key] = nums[key] + "";
+          subs[key] = nums[key].toFixed(2);
         }
       }
     }
@@ -811,7 +811,7 @@ function columnSubtract(first, second) {
     if (diff) {
       comparison = Math.sign(diff);
     }
-    value = diff + '';
+    value = diff.toFixed(2);
   }
   return { value, comparison };
 }

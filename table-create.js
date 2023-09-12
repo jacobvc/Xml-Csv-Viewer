@@ -252,7 +252,7 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
         }
         else {
           nums[key] += Number(value);
-          subs[key] = nums[key] + "";
+          subs[key] = nums[key].toFixed(2);
         }
       }
     }
@@ -298,7 +298,7 @@ function columnSubtract(first, second) {
     if (diff) {
       comparison = Math.sign(diff);
     }
-    value = diff + '';
+    value = diff.toFixed(2);
   }
   return { value, comparison };
 }
