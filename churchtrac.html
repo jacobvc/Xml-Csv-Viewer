@@ -45,7 +45,7 @@
     var reader = new FileReader();
     var rowreader = new FileReader();
 
-    function readRows(id) {
+    function readRowOrder(id) {
       let input = document.getElementById(id);
       var currentFile = input.files[0];
       rowreader.readAsText(currentFile);
@@ -147,6 +147,8 @@
     }
 
     // Creating and displaying the table
+
+    // Hide 'elemId' and go to print dialog, then unhide upon return
     function printHiding(elemId) {
       var elem = document.getElementById(elemId);
       elem.style = "display: none";
@@ -181,13 +183,16 @@
       }
     }
 
+    // Change the order of rows in current to match rowOrder
     function reorder(current) {
       if (rowOrder.length > 0) {
         // There is a reorder spec
         if (rowOrder.length == current.length) {
+          // And it has the correct number of rows
           for (var r = 0; r < rowOrder.length; ++r) {
             var found = false;
             for (var i = r; i < current.length; ++i) {
+              // reorder to match
               if (current[i]['Category'].trim() == rowOrder[r]) {
                 let tmp = current[r];
                 current[r] = current[i];
@@ -212,6 +217,7 @@
       }
     }
 
+    // Render the budget table
     function showData() {
       let elem = document.getElementById('id-data');
       let format = getFormatOptions();
@@ -288,6 +294,8 @@
       showDataform();
     }
 
+    // Make a popup with a textarea containing the category value
+    // of each row, one per line
     function CreateRowList() {
       if (thisContent) {
         var current = fileData[thisContent];
@@ -307,10 +315,13 @@
 
     function showRowOrder() {
       if (thisContent) {
+        // Content is available to process
         var current = fileData[thisContent];
         if (priorContent && fileData[combinedName]) {
+          // There is combined content. Use that instead
           current = fileData[combinedName]
         }
+      // Get the HTML element and create title / instructions
       var name = "rowOrder"
       var elem = document.getElementById("dataFormId");
       elem.replaceChildren();
@@ -325,18 +336,17 @@
       + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
       elem.appendChild(instructions);
 
+      // Fill value with the categories
       var value = '';
       for (var i = 0; i < current.length; ++i) {
         value += current[i]['Category'] + '\n';
       }
 
-
+      // Create a textarea and fill it with value
       var inputElem = document.createElement('textarea');
-      //inputElem.type = 'textarea';
       inputElem.id = name;
       inputElem.name = name;
       inputElem.value = value;
-      //inputElem.size = 20;
 
       elem.appendChild(inputElem);
 
@@ -402,7 +412,7 @@
       </span>
       <span class="input-span">
         Budget Row <input type="button" onclick="showRowOrder()" value="Order" /> <input type="file" id="id-rows"
-          accept="text/plain" onclick="type=''; type='file';" style="width:244px;" onchange="readRows('id-rows')">
+          accept="text/plain" onclick="type=''; type='file';" style="width:244px;" onchange="readRowOrder('id-rows')">
       </span>
       <span class='input-span'> Page Heading
         <input id="pageheading" size="60" type="text" />
