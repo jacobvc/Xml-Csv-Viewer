@@ -9,7 +9,7 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.3';
+    var revision = '1.4';
 
     var revisionstring = title + ', Revision ' + revision + ", 9/2023";
 
@@ -146,6 +146,16 @@
       return getOptions(contentColumns[which], 'col-');
     }
 
+    function newDataElement(columns, category)
+    {
+      var obj = {};
+      for (column in columns) {
+        obj[column] = "";
+      }
+      obj['Category'] = category;
+      return obj;
+  }
+
     // Creating and displaying the table
 
     // Hide 'elemId' and go to print dialog, then unhide upon return
@@ -184,36 +194,53 @@
     }
 
     // Change the order of rows in current to match rowOrder
-    function reorder(current) {
+    function reorder(columns, current) {
+      var added = 0;
+      var prefix = "";
+
+      var reordered = [];
+
       if (rowOrder.length > 0) {
         // There is a reorder spec
-        if (rowOrder.length == current.length) {
+        if (rowOrder.length >= current.length) {
           // And it has the correct number of rows
           for (var r = 0; r < rowOrder.length; ++r) {
             var found = false;
-            for (var i = r; i < current.length; ++i) {
+            for (var i = r - added; i < current.length; ++i) {
               // reorder to match
               if (current[i]['Category'].trim() == rowOrder[r]) {
-                let tmp = current[r];
-                current[r] = current[i];
-                current[i] = tmp;
+                let tmp = current[i];
+                if (rowOrder[r].toUpperCase().startsWith(incomeCategories.toUpperCase())
+                  || rowOrder[r].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+                    prefix = "";
+                }
+                reordered[r] =JSON.parse(JSON.stringify(current[i]));
+                reordered[r]['Category'] = prefix + current[i]['Category'];
+                current[i] = current[r - added];
+                current[r - added] = tmp;
                 found = true;
                 break;
               }
             }
             if (!found) {
-              throw new Error("Budget Row Order Column '" + rowOrder[r] + "' not found");
+              reordered[r] = newDataElement(columns, rowOrder[r]);
+              prefix = rowOrder[r] + ': ';
+              console.log("Adding row " + rowOrder[r]);
+              ++added;
+              //throw new Error("Budget Row Order Column '" + rowOrder[r] + "' not found");
             }
+          }
+          if (rowOrder.length != current.length + added) {
+            throw new Error("Budget Row Order does not contain all rows");
           }
         }
         else {
-          if (rowOrder.length > current.length) {
-            throw new Error("Budget Row Order contains too many rows");
-          }
-          else {
             throw new Error("Budget Row Order contains too few rows");
-          }
         }
+        return reordered;
+      }
+      else {
+        return current;
       }
     }
 
@@ -254,8 +281,8 @@
           if (priorContent) {
             columns = getColumnOptions(combinedName);
             combine();
-            reorder(fileData[combinedName])
-            createTable(fileData[combinedName], elem, thisContent, columns,
+            
+            createTable(reorder(columns, fileData[combinedName]), elem, thisContent, columns,
               noCsvHeader, onclick, highlightGroups, format);
             var footer = document.createElement('h4');
             if (currentActualName in columns || currentBudgetName in columns || currentDifferenceName in columns) {
@@ -266,8 +293,7 @@
             }
           }
           else {
-            reorder(fileData[thisContent])
-            createTable(fileData[thisContent], elem, thisContent, columns,
+            createTable(reorder(columns, fileData[thisContent]), elem, thisContent, columns,
               noCsvHeader, onclick, highlightGroups, format);
           }
           var span = document.createElement("span");

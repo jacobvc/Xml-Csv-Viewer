@@ -388,7 +388,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
             value = fields[indent];
             // Prior row (heading) is the subtotal start row
             startRows[indent] = i - 1;
-            while (newIndent > indent + 1) {
+            while (newIndent > indent) {
               // This row is the subtotal start row (the heading is synthesized)
               startRows[indent] = i;
               firstColumn(tr, rootIndent + indent, fields[indent]);
@@ -396,6 +396,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
                 nonFirstColumn(tr, '');
               }
               ++indent;
+              value = fields[indent];
 
               // Add missing header row
               frag.appendChild(tr);
