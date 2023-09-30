@@ -208,7 +208,7 @@
             var found = false;
             for (var i = r - added; i < current.length; ++i) {
               // reorder to match
-              if (current[i]['Category'].trim() == rowOrder[r]) {
+              if (current[i]['Category'].replace(/ /g, '') == rowOrder[r].replace(/ /g, '')) {
                 let tmp = current[i];
                 if (rowOrder[r].toUpperCase().startsWith(incomeCategories.toUpperCase())
                   || rowOrder[r].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
