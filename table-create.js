@@ -37,6 +37,7 @@ let incomeCategories = "INCOME CATEGORIES";
 let expenseCategories = "EXPENSE CATEGORIES";
 
 let doingExpense = false;
+let decimalPlaces = 2;
 
 
 /*
@@ -252,7 +253,7 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
         }
         else {
           nums[key] += Number(value);
-          subs[key] = nums[key].toFixed(2);
+          subs[key] = nums[key].toFixed(decimalPlaces);
         }
       }
     }
@@ -274,15 +275,9 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
 
 
   Object.keys(columns).forEach(function (key, col) {
-    if (col > 0) { // Already did firstColumn
-      if (blankZeros in options && nums[key] == 0) {
-        // Blank zero values
-        nonFirstColumn(tr, '', "subtotal");
-      }
-      else {
-        nonFirstColumn(tr, subs[key], "subtotal",
-          tdClass[key] ? tdClass[key] : null);
-      }
+    if (col > 0) { // Already did firstColumn; ignore blankzeros for subtotal
+      nonFirstColumn(tr, subs[key], "subtotal",
+        tdClass[key] ? tdClass[key] : null);
     }
   });
 }
@@ -298,7 +293,12 @@ function columnSubtract(first, second) {
     if (diff) {
       comparison = Math.sign(diff);
     }
-    value = diff.toFixed(2);
+    if (comparison == 0) {
+      value = '0';
+    }
+    else {
+      value = diff.toFixed(decimalPlaces);
+    }
   }
   return { value, comparison };
 }
@@ -327,16 +327,16 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
     var tdClass = {}
     if (highlight in options) {
       highlightGroups.forEach(function (group) {
-      if (Number(data[i][group[0]]) != 0) {
-        var result = columnSubtract(data[i][group[0]], data[i][group[1]]);
-        if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
-          group.forEach(function (column) {
-            tdClass[column] = 'highlight';
-          })
+        if (Number(data[i][group[0]]) != 0) {
+          var result = columnSubtract(data[i][group[0]], data[i][group[1]]);
+          if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
+            group.forEach(function (column) {
+              tdClass[column] = 'highlight';
+            })
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
     Object.keys(columns).forEach(function (name) {
       let value = data[i][name];
@@ -439,6 +439,9 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
       td.dataset.propName = name;
       if (typeof (value) === 'object') {
         value = '[OBJECT]';
+      }
+      else if (!isNaN(value) && value.length > 0) {
+        value = Number(value).toFixed(decimalPlaces);
       }
       else {
         var date = new Date(value)

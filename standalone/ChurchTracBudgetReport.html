@@ -6,9 +6,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.4';
+    var revision = '1.5';
 
-    var revisionstring = title + ', Revision ' + revision + ", 9/2023";
+    var revisionstring = title + ', Revision ' + revision + ", 11/2023";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -143,6 +143,16 @@
       return getOptions(contentColumns[which], 'col-');
     }
 
+    function newDataElement(columns, category)
+    {
+      var obj = {};
+      for (column in columns) {
+        obj[column] = "";
+      }
+      obj['Category'] = category;
+      return obj;
+  }
+
     // Creating and displaying the table
 
     // Hide 'elemId' and go to print dialog, then unhide upon return
@@ -181,36 +191,53 @@
     }
 
     // Change the order of rows in current to match rowOrder
-    function reorder(current) {
+    function reorder(columns, current) {
+      var added = 0;
+      var prefix = "";
+
+      var reordered = [];
+
       if (rowOrder.length > 0) {
         // There is a reorder spec
-        if (rowOrder.length == current.length) {
+        if (rowOrder.length >= current.length) {
           // And it has the correct number of rows
           for (var r = 0; r < rowOrder.length; ++r) {
             var found = false;
-            for (var i = r; i < current.length; ++i) {
+            for (var i = r - added; i < current.length; ++i) {
               // reorder to match
               if (current[i]['Category'].replace(/ /g, '') == rowOrder[r].replace(/ /g, '')) {
-                let tmp = current[r];
-                current[r] = current[i];
-                current[i] = tmp;
+                let tmp = current[i];
+                if (rowOrder[r].toUpperCase().startsWith(incomeCategories.toUpperCase())
+                  || rowOrder[r].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
+                    prefix = "";
+                }
+                reordered[r] =JSON.parse(JSON.stringify(current[i]));
+                reordered[r]['Category'] = prefix + current[i]['Category'];
+                current[i] = current[r - added];
+                current[r - added] = tmp;
                 found = true;
                 break;
               }
             }
             if (!found) {
-              throw new Error("Budget Row Order Column '" + rowOrder[r] + "' not found");
+              reordered[r] = newDataElement(columns, rowOrder[r]);
+              prefix = rowOrder[r] + ': ';
+              console.log("Adding row " + rowOrder[r]);
+              ++added;
+              //throw new Error("Budget Row Order Column '" + rowOrder[r] + "' not found");
             }
+          }
+          if (rowOrder.length != current.length + added) {
+            throw new Error("Budget Row Order does not contain all rows");
           }
         }
         else {
-          if (rowOrder.length > current.length) {
-            throw new Error("Budget Row Order contains too many rows");
-          }
-          else {
             throw new Error("Budget Row Order contains too few rows");
-          }
         }
+        return reordered;
+      }
+      else {
+        return current;
       }
     }
 
@@ -230,6 +257,7 @@
 
       if (thisContent) {
         try {
+          decimalPlaces = document.getElementById('decimal-places').value;
           var dodate = document.getElementById('printed-on');
 
           var pageheadingInpElem = document.getElementById('pageheading');
@@ -251,8 +279,8 @@
           if (priorContent) {
             columns = getColumnOptions(combinedName);
             combine();
-            reorder(fileData[combinedName])
-            createTable(fileData[combinedName], elem, thisContent, columns,
+            
+            createTable(reorder(columns, fileData[combinedName]), elem, thisContent, columns,
               noCsvHeader, onclick, highlightGroups, format);
             var footer = document.createElement('h4');
             if (currentActualName in columns || currentBudgetName in columns || currentDifferenceName in columns) {
@@ -263,8 +291,7 @@
             }
           }
           else {
-            reorder(fileData[thisContent])
-            createTable(fileData[thisContent], elem, thisContent, columns,
+            createTable(reorder(columns, fileData[thisContent]), elem, thisContent, columns,
               noCsvHeader, onclick, highlightGroups, format);
           }
           var span = document.createElement("span");
@@ -274,6 +301,7 @@
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
+          localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
         } catch (error) {
           err.textContent = 'Rendering error: ' + error.message;
         }
@@ -379,6 +407,9 @@
 
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
+
+      elem = document.getElementById('decimal-places');
+      elem.value = JSON.parse(localStorage.getItem('decimalPlaces'));
 
       elem = document.getElementById('title');
       elem.innerHTML = title;
@@ -560,6 +591,7 @@ let incomeCategories = "INCOME CATEGORIES";
 let expenseCategories = "EXPENSE CATEGORIES";
 
 let doingExpense = false;
+let decimalPlaces = 2;
 
 
 /*
@@ -775,7 +807,7 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
         }
         else {
           nums[key] += Number(value);
-          subs[key] = nums[key].toFixed(2);
+          subs[key] = nums[key].toFixed(decimalPlaces);
         }
       }
     }
@@ -797,15 +829,9 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
 
 
   Object.keys(columns).forEach(function (key, col) {
-    if (col > 0) { // Already did firstColumn
-      if (blankZeros in options && nums[key] == 0) {
-        // Blank zero values
-        nonFirstColumn(tr, '', "subtotal");
-      }
-      else {
-        nonFirstColumn(tr, subs[key], "subtotal",
-          tdClass[key] ? tdClass[key] : null);
-      }
+    if (col > 0) { // Already did firstColumn; ignore blankzeros for subtotal
+      nonFirstColumn(tr, subs[key], "subtotal",
+        tdClass[key] ? tdClass[key] : null);
     }
   });
 }
@@ -821,7 +847,12 @@ function columnSubtract(first, second) {
     if (diff) {
       comparison = Math.sign(diff);
     }
-    value = diff.toFixed(2);
+    if (comparison == 0) {
+      value = '0';
+    }
+    else {
+      value = diff.toFixed(decimalPlaces);
+    }
   }
   return { value, comparison };
 }
@@ -850,16 +881,16 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
     var tdClass = {}
     if (highlight in options) {
       highlightGroups.forEach(function (group) {
-      if (Number(data[i][group[0]]) != 0) {
-        var result = columnSubtract(data[i][group[0]], data[i][group[1]]);
-        if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
-          group.forEach(function (column) {
-            tdClass[column] = 'highlight';
-          })
+        if (Number(data[i][group[0]]) != 0) {
+          var result = columnSubtract(data[i][group[0]], data[i][group[1]]);
+          if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
+            group.forEach(function (column) {
+              tdClass[column] = 'highlight';
+            })
+          }
         }
-      }
-    });
-  }
+      });
+    }
 
     Object.keys(columns).forEach(function (name) {
       let value = data[i][name];
@@ -911,7 +942,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
             value = fields[indent];
             // Prior row (heading) is the subtotal start row
             startRows[indent] = i - 1;
-            while (newIndent > indent + 1) {
+            while (newIndent > indent) {
               // This row is the subtotal start row (the heading is synthesized)
               startRows[indent] = i;
               firstColumn(tr, rootIndent + indent, fields[indent]);
@@ -919,6 +950,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
                 nonFirstColumn(tr, '');
               }
               ++indent;
+              value = fields[indent];
 
               // Add missing header row
               frag.appendChild(tr);
@@ -961,6 +993,9 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
       td.dataset.propName = name;
       if (typeof (value) === 'object') {
         value = '[OBJECT]';
+      }
+      else if (!isNaN(value) && value.length > 0) {
+        value = Number(value).toFixed(decimalPlaces);
       }
       else {
         var date = new Date(value)
@@ -1226,6 +1261,13 @@ p#tooltip-text:before {
         <input id="pageheading" size="60" type="text" />
       </span>
       <span class="input-span">
+        <label for="decimal-places"> Decimal Places</label>
+        <select name="decimal-places" id="decimal-places">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+      
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 

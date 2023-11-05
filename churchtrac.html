@@ -9,9 +9,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.4';
+    var revision = '1.5';
 
-    var revisionstring = title + ', Revision ' + revision + ", 9/2023";
+    var revisionstring = title + ', Revision ' + revision + ", 11/2023";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -260,6 +260,7 @@
 
       if (thisContent) {
         try {
+          decimalPlaces = document.getElementById('decimal-places').value;
           var dodate = document.getElementById('printed-on');
 
           var pageheadingInpElem = document.getElementById('pageheading');
@@ -303,6 +304,7 @@
 
           localStorage.setItem(pageheadingSettings, pageheadingInpElem.value.trim());
           localStorage.setItem('printdate', JSON.stringify(dodate.checked));
+          localStorage.setItem('decimalPlaces', JSON.stringify(decimalPlaces));
         } catch (error) {
           err.textContent = 'Rendering error: ' + error.message;
         }
@@ -409,6 +411,9 @@
       elem = document.getElementById('printed-on');
       elem.checked = JSON.parse(localStorage.getItem('printdate'));
 
+      elem = document.getElementById('decimal-places');
+      elem.value = JSON.parse(localStorage.getItem('decimalPlaces'));
+
       elem = document.getElementById('title');
       elem.innerHTML = title;
 
@@ -444,6 +449,13 @@
         <input id="pageheading" size="60" type="text" />
       </span>
       <span class="input-span">
+        <label for="decimal-places"> Decimal Places</label>
+        <select name="decimal-places" id="decimal-places">
+          <option value="0">0</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+      
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 
