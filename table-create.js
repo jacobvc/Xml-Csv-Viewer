@@ -1,4 +1,5 @@
 "use strict";
+// variables containing 'name's
 let nested = "Nested";
 let incomeExpense = "Income-Expense";
 let subtotal = "Subtotal";
@@ -31,6 +32,13 @@ let tableOptions = [
     'name': highlight, 'text': 'Highlight Concerns', 'description':
       'Highlight under-budget income and over-budget expenses'
   },
+  /*
+  {
+    'name': 'choices', 'text': 'Choices test', 'description':
+      'Test for choices implementation', 
+      'choices': ['A', 'B', 'C'], 'choiceNone' : 'None'
+  },
+  */
 ];
 
 let incomeCategories = "INCOME CATEGORIES";

@@ -1,30 +1,30 @@
 "use strict";
 /*  Present and query a set of options with selection checkboxes 
 
-    Required tooltip html:
-    
-    Single id="tooltip-text" element for entire page)
+Required tooltip html support:
+  Utilizes a single id="tooltip-text" element for entire page)
+    Example:
+      <p id="tooltip-text">The tooltip text.</p>
 
-    Example: <p id="tooltip-text">The tooltip text.</p>
-
-    Required options html:
-
-    Example (Note - group DIV is optional):
-
+Required containerElem div of class container in html:
+  Example (Note - group DIV is optional):
     <div class="group">Option Label
         <div id="<Container element ID>" class="container"></div>
     </div>
 
-    Required CSS:
-
-      p#tooltip-text, .container, .contained, (optional) .group
+Required CSS elements:
+    p#tooltip-text, .container, .contained, (optional) .group
 */
 
 /* Populate 'containerElem' with options from 'list' using 'scope' to qualify
-   element ID's, and initializing state to 'isChecked'
+   element ID's, and initializing state to 'isChecked'; excluding 'exclude' 
+   list members
 
    'list' is an array of objects containing 'name', 'text', and optional 'description'.
    If description is present, it is used for tooltip text.
+
+   If optional 'choices' are specified, render selecable list of choices,
+   otherwise render checkbox.
 
    Note that scope + name are transformed into valid HTML ID's
  */
@@ -40,19 +40,48 @@ function populateOptions(containerElem, list, scope, isChecked, exclude = []) {
         divElem.id = "iddiv-" + idPart;
         divElem.className = "contained";
 
-        var inputElem = document.createElement('input');
-        inputElem.type = 'checkbox';
-        inputElem.id = 'id-' + idPart;
-        inputElem.name = item.name;
-        inputElem.value = item.name;
-        inputElem.checked = isChecked;
+        if ('choices' in item) {
+          var labelElem = document.createElement('label');
+          labelElem.textContent = item.text + '\n';
+          divElem.appendChild(labelElem);
 
-        var labelElem = document.createElement('label');
-        labelElem.htmlFor = 'id-' + idPart;
-        labelElem.textContent = item.text;
+          var choiceNone = 'N/A';
+          if ('choiceNone' in item) {
+            choiceNone = item.choiceNone;
+          }
 
-        divElem.appendChild(inputElem);
-        divElem.appendChild(labelElem);
+          var elements = CreateRadioButton('id-' + idPart, choiceNone, "");
+          elements[0].checked = true;
+          var div = document.createElement('div');
+          div.appendChild(elements[0]);
+          div.appendChild(elements[1]);
+          divElem.append(div);
+
+          //var anyChecked;
+          item.choices.forEach(function (choice) {
+            elements = CreateRadioButton('id-' + idPart, choice, choice);
+
+            div = document.createElement('div');
+            div.appendChild(elements[0]);
+            div.appendChild(elements[1]);
+            divElem.append(div);
+          });
+        }
+        else {
+          var inputElem = document.createElement('input');
+          inputElem.type = 'checkbox';
+          inputElem.id = 'id-' + idPart;
+          inputElem.name = item.name;
+          inputElem.value = item.name;
+          inputElem.checked = isChecked;
+
+          var labelElem = document.createElement('label');
+          labelElem.htmlFor = 'id-' + idPart;
+          labelElem.textContent = item.text + '\n';
+
+          divElem.appendChild(inputElem);
+          divElem.appendChild(labelElem);
+        }
 
         containerElem.appendChild(divElem);
       }
@@ -79,7 +108,29 @@ function populateOptions(containerElem, list, scope, isChecked, exclude = []) {
   }
 }
 
-/* Get selected options of 'scope' in 'list' as an array of option names.
+/*
+  Helper function - Create a radio button in group 'groupId' for 'choice'
+  with 'value'.
+ */
+function CreateRadioButton(groupId, choice, value) {
+  var inputElem = document.createElement('input');
+  inputElem.type = 'radio';
+  inputElem.id = groupId + choice;
+  inputElem.name = groupId;  
+  inputElem.value = value;
+
+  var labelElem = document.createElement('label');
+  labelElem.htmlFor = groupId + choice;
+  labelElem.textContent = choice;
+
+  return [inputElem, labelElem];
+}
+
+/* Get selected options of 'scope' in 'list' as an object with a field for
+ * each chosen list item.
+ *
+ * The value is the text of the selected option (empty string if options 
+ * not present and box checked)
  *
  * Save current option settings to localStorage
  */
@@ -90,7 +141,20 @@ function getOptions(list, scope) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
       if (elem && elem.checked) {
-        checked[elem.name] = elem.name;
+        checked[elem.name] = "";
+      }
+      else if ('choices' in item) {
+        var value;
+        let name = 'id-' + _createHtmlId(scope + item.name);
+        var btns = document.getElementsByName(name);
+        btns.forEach(function (obj) {
+          if (obj.checked) {
+            value = obj.value;
+          }
+        });
+        if (value) {
+          checked[item.name] = value;
+        }
       }
     });
   }
@@ -99,22 +163,33 @@ function getOptions(list, scope) {
   return checked;
 }
 
-/* Override checked state from values previously saved in localStorage
+/* Override displayed values from values previously saved in localStorage
  */
 function overrideOptions(list, scope) {
   var checked = JSON.parse(localStorage.getItem(scope + 'settings'));
   if (list && checked) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
-        var elem = document.getElementById('id-' + idPart);
-        if (elem) {
-          elem.checked = (elem.name in checked);
+      var elem = document.getElementById('id-' + idPart);
+      if (elem) {
+        elem.checked = (elem.name in checked);
       }
+      else if ('choices' in item) {
+          let name = 'id-' + _createHtmlId(scope + item.name);
+          var btns = document.getElementsByName(name);
+          btns.forEach(function (obj) {
+            if (checked.choices == obj.value) {
+              obj.checked = true;
+            }
+          });
+        }
+      
     });
   }
 }
 
-/* Override checked state of all options of 'scope' in 'list' to 'isChecked'
+/* Override checked state of all non-choice items of 'scope' in 'list' to 
+ * 'isChecked'
  */
 function setAllOptions(list, scope, isChecked) {
   if (list) {
