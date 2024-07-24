@@ -121,6 +121,7 @@ textarea{
 .group {
   background-color: var(--group-background);
   border: 2px solid var(--border-color);
+  display:inline-flex;
   border-radius: 4px;
   padding: 4px;
   margin: 4px;
@@ -138,6 +139,13 @@ textarea{
   border-radius: 5px;
   float: left;
   width: 120px;
+  margin: 4px;
+}
+
+.containedbtn {
+  padding: 4px;
+  border-radius: 5px;
+  float: left;
   margin: 4px;
 }
 

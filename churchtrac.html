@@ -9,9 +9,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.5';
+    var revision = '1.6';
 
-    var revisionstring = title + ', Revision ' + revision + ", 11/2023";
+    var revisionstring = title + ', Revision ' + revision + ", 7/2024";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -146,15 +146,14 @@
       return getOptions(contentColumns[which], 'col-');
     }
 
-    function newDataElement(columns, category)
-    {
+    function newDataElement(columns, category) {
       var obj = {};
       for (column in columns) {
         obj[column] = "";
       }
       obj['Category'] = category;
       return obj;
-  }
+    }
 
     // Creating and displaying the table
 
@@ -212,9 +211,9 @@
                 let tmp = current[i];
                 if (rowOrder[r].toUpperCase().startsWith(incomeCategories.toUpperCase())
                   || rowOrder[r].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-                    prefix = "";
+                  prefix = "";
                 }
-                reordered[r] =JSON.parse(JSON.stringify(current[i]));
+                reordered[r] = JSON.parse(JSON.stringify(current[i]));
                 reordered[r]['Category'] = prefix + current[i]['Category'];
                 current[i] = current[r - added];
                 current[r - added] = tmp;
@@ -235,7 +234,7 @@
           }
         }
         else {
-            throw new Error("Budget Row Order contains too few rows");
+          throw new Error("Budget Row Order contains too few rows");
         }
         return reordered;
       }
@@ -282,7 +281,7 @@
           if (priorContent) {
             columns = getColumnOptions(combinedName);
             combine();
-            
+
             createTable(reorder(columns, fileData[combinedName]), elem, thisContent, columns,
               noCsvHeader, onclick, highlightGroups, format);
             var footer = document.createElement('h4');
@@ -349,37 +348,37 @@
           // There is combined content. Use that instead
           current = fileData[combinedName]
         }
-      // Get the HTML element and create title / instructions
-      var name = "rowOrder"
-      var elem = document.getElementById("dataFormId");
-      elem.replaceChildren();
-      var titleElem = document.createElement('h2');
-      titleElem.textContent = "Budget Row Order";
-      elem.appendChild(titleElem);
+        // Get the HTML element and create title / instructions
+        var name = "rowOrder"
+        var elem = document.getElementById("dataFormId");
+        elem.replaceChildren();
+        var titleElem = document.createElement('h2');
+        titleElem.textContent = "Budget Row Order";
+        elem.appendChild(titleElem);
 
-      var instructions = document.createElement('p');
-      instructions.textContent
-      = 'This is the current row order. It may change if you "Choose File"'
-      + 'a Row Order file and "(re)Display\n\n'
-      + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
-      elem.appendChild(instructions);
+        var instructions = document.createElement('p');
+        instructions.textContent
+          = 'This is the current row order. It may change if you "Choose File"'
+          + 'a Row Order file and "(re)Display\n\n'
+          + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
+        elem.appendChild(instructions);
 
-      // Fill value with the categories
-      var value = '';
-      for (var i = 0; i < current.length; ++i) {
-        value += current[i]['Category'] + '\n';
+        // Fill value with the categories
+        var value = '';
+        for (var i = 0; i < current.length; ++i) {
+          value += current[i]['Category'] + '\n';
+        }
+
+        // Create a textarea and fill it with value
+        var inputElem = document.createElement('textarea');
+        inputElem.id = name;
+        inputElem.name = name;
+        inputElem.value = value;
+
+        elem.appendChild(inputElem);
+
+        showDataform();
       }
-
-      // Create a textarea and fill it with value
-      var inputElem = document.createElement('textarea');
-      inputElem.id = name;
-      inputElem.name = name;
-      inputElem.value = value;
-
-      elem.appendChild(inputElem);
-
-      showDataform();
-    }
       else {
         alert("No content loaded");
       }
@@ -455,7 +454,7 @@
           <option value="1">1</option>
           <option value="2">2</option>
         </select>
-      
+
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 
@@ -463,17 +462,23 @@
       </span>
     </div>
     <p id="tooltip-text">The tooltip text.</p>
-    <div class="group">Columns<br><button onclick="setAllOptions(contentColumns[combinedName], 'col-', true);">Select
-        All</button>
+    <div class="group ">
+      <div class="containedbtn">Columns
+        <br><button onclick="setAllOptions(contentColumns[combinedName], 'col-', true);">Select:All</button>
+        <br><button onclick="setAllOptions(contentColumns[combinedName], 'col-', false);">Deselect:All</button>
+      </div>
       <div id="id-columns" class="container"></div>
-    </div>
-    <div class="group">Format<br><button onclick="setAllOptions(tableOptions, 'fmt-', true);">Select
-      All</button>
+    </div><br>
+    <div class="group ">
+      <div class="containedbtn">Format
+        <br><button onclick="setAllOptions(tableOptions, 'fmt-', true);">Select:All</button>
+        <br><button onclick="setAllOptions(tableOptions, 'fmt-', false);">Deselect:All</button>
+      </div>
       <div id="id-format" class="container"></div>
     </div>
 
-    <input type="button" onclick="showData()" value="(re)Display)">
-    <span id="revision" style="float:right"></span>
+    <P><input type="button" onclick="showData()" value="(re)Display)">
+    <span id="revision" style="float:right"></span></P>
   </div>
 
   <form id="id-data-form" action="">

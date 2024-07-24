@@ -6,9 +6,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.5';
+    var revision = '1.6';
 
-    var revisionstring = title + ', Revision ' + revision + ", 11/2023";
+    var revisionstring = title + ', Revision ' + revision + ", 7/2024";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -143,15 +143,14 @@
       return getOptions(contentColumns[which], 'col-');
     }
 
-    function newDataElement(columns, category)
-    {
+    function newDataElement(columns, category) {
       var obj = {};
       for (column in columns) {
         obj[column] = "";
       }
       obj['Category'] = category;
       return obj;
-  }
+    }
 
     // Creating and displaying the table
 
@@ -209,9 +208,9 @@
                 let tmp = current[i];
                 if (rowOrder[r].toUpperCase().startsWith(incomeCategories.toUpperCase())
                   || rowOrder[r].toUpperCase().startsWith(expenseCategories.toUpperCase())) {
-                    prefix = "";
+                  prefix = "";
                 }
-                reordered[r] =JSON.parse(JSON.stringify(current[i]));
+                reordered[r] = JSON.parse(JSON.stringify(current[i]));
                 reordered[r]['Category'] = prefix + current[i]['Category'];
                 current[i] = current[r - added];
                 current[r - added] = tmp;
@@ -232,7 +231,7 @@
           }
         }
         else {
-            throw new Error("Budget Row Order contains too few rows");
+          throw new Error("Budget Row Order contains too few rows");
         }
         return reordered;
       }
@@ -279,7 +278,7 @@
           if (priorContent) {
             columns = getColumnOptions(combinedName);
             combine();
-            
+
             createTable(reorder(columns, fileData[combinedName]), elem, thisContent, columns,
               noCsvHeader, onclick, highlightGroups, format);
             var footer = document.createElement('h4');
@@ -346,37 +345,37 @@
           // There is combined content. Use that instead
           current = fileData[combinedName]
         }
-      // Get the HTML element and create title / instructions
-      var name = "rowOrder"
-      var elem = document.getElementById("dataFormId");
-      elem.replaceChildren();
-      var titleElem = document.createElement('h2');
-      titleElem.textContent = "Budget Row Order";
-      elem.appendChild(titleElem);
+        // Get the HTML element and create title / instructions
+        var name = "rowOrder"
+        var elem = document.getElementById("dataFormId");
+        elem.replaceChildren();
+        var titleElem = document.createElement('h2');
+        titleElem.textContent = "Budget Row Order";
+        elem.appendChild(titleElem);
 
-      var instructions = document.createElement('p');
-      instructions.textContent
-      = 'This is the current row order. It may change if you "Choose File"'
-      + 'a Row Order file and "(re)Display\n\n'
-      + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
-      elem.appendChild(instructions);
+        var instructions = document.createElement('p');
+        instructions.textContent
+          = 'This is the current row order. It may change if you "Choose File"'
+          + 'a Row Order file and "(re)Display\n\n'
+          + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
+        elem.appendChild(instructions);
 
-      // Fill value with the categories
-      var value = '';
-      for (var i = 0; i < current.length; ++i) {
-        value += current[i]['Category'] + '\n';
+        // Fill value with the categories
+        var value = '';
+        for (var i = 0; i < current.length; ++i) {
+          value += current[i]['Category'] + '\n';
+        }
+
+        // Create a textarea and fill it with value
+        var inputElem = document.createElement('textarea');
+        inputElem.id = name;
+        inputElem.name = name;
+        inputElem.value = value;
+
+        elem.appendChild(inputElem);
+
+        showDataform();
       }
-
-      // Create a textarea and fill it with value
-      var inputElem = document.createElement('textarea');
-      inputElem.id = name;
-      inputElem.name = name;
-      inputElem.value = value;
-
-      elem.appendChild(inputElem);
-
-      showDataform();
-    }
       else {
         alert("No content loaded");
       }
@@ -421,30 +420,30 @@
 "use strict";
 /*  Present and query a set of options with selection checkboxes 
 
-    Required tooltip html:
-    
-    Single id="tooltip-text" element for entire page)
+Required tooltip html support:
+  Utilizes a single id="tooltip-text" element for entire page)
+    Example:
+      <p id="tooltip-text">The tooltip text.</p>
 
-    Example: <p id="tooltip-text">The tooltip text.</p>
-
-    Required options html:
-
-    Example (Note - group DIV is optional):
-
+Required containerElem div of class container in html:
+  Example (Note - group DIV is optional):
     <div class="group">Option Label
         <div id="<Container element ID>" class="container"></div>
     </div>
 
-    Required CSS:
-
-      p#tooltip-text, .container, .contained, (optional) .group
+Required CSS elements:
+    p#tooltip-text, .container, .contained, (optional) .group
 */
 
 /* Populate 'containerElem' with options from 'list' using 'scope' to qualify
-   element ID's, and initializing state to 'isChecked'
+   element ID's, and initializing state to 'isChecked'; excluding 'exclude' 
+   list members
 
    'list' is an array of objects containing 'name', 'text', and optional 'description'.
    If description is present, it is used for tooltip text.
+
+   If optional 'choices' are specified, render selecable list of choices,
+   otherwise render checkbox.
 
    Note that scope + name are transformed into valid HTML ID's
  */
@@ -460,19 +459,48 @@ function populateOptions(containerElem, list, scope, isChecked, exclude = []) {
         divElem.id = "iddiv-" + idPart;
         divElem.className = "contained";
 
-        var inputElem = document.createElement('input');
-        inputElem.type = 'checkbox';
-        inputElem.id = 'id-' + idPart;
-        inputElem.name = item.name;
-        inputElem.value = item.name;
-        inputElem.checked = isChecked;
+        if ('choices' in item) {
+          var labelElem = document.createElement('label');
+          labelElem.textContent = item.text + '\n';
+          divElem.appendChild(labelElem);
 
-        var labelElem = document.createElement('label');
-        labelElem.htmlFor = 'id-' + idPart;
-        labelElem.textContent = item.text;
+          var choiceNone = 'N/A';
+          if ('choiceNone' in item) {
+            choiceNone = item.choiceNone;
+          }
 
-        divElem.appendChild(inputElem);
-        divElem.appendChild(labelElem);
+          var elements = CreateRadioButton('id-' + idPart, choiceNone, "");
+          elements[0].checked = true;
+          var div = document.createElement('div');
+          div.appendChild(elements[0]);
+          div.appendChild(elements[1]);
+          divElem.append(div);
+
+          //var anyChecked;
+          item.choices.forEach(function (choice) {
+            elements = CreateRadioButton('id-' + idPart, choice, choice);
+
+            div = document.createElement('div');
+            div.appendChild(elements[0]);
+            div.appendChild(elements[1]);
+            divElem.append(div);
+          });
+        }
+        else {
+          var inputElem = document.createElement('input');
+          inputElem.type = 'checkbox';
+          inputElem.id = 'id-' + idPart;
+          inputElem.name = item.name;
+          inputElem.value = item.name;
+          inputElem.checked = isChecked;
+
+          var labelElem = document.createElement('label');
+          labelElem.htmlFor = 'id-' + idPart;
+          labelElem.textContent = item.text + '\n';
+
+          divElem.appendChild(inputElem);
+          divElem.appendChild(labelElem);
+        }
 
         containerElem.appendChild(divElem);
       }
@@ -499,7 +527,29 @@ function populateOptions(containerElem, list, scope, isChecked, exclude = []) {
   }
 }
 
-/* Get selected options of 'scope' in 'list' as an array of option names.
+/*
+  Helper function - Create a radio button in group 'groupId' for 'choice'
+  with 'value'.
+ */
+function CreateRadioButton(groupId, choice, value) {
+  var inputElem = document.createElement('input');
+  inputElem.type = 'radio';
+  inputElem.id = groupId + choice;
+  inputElem.name = groupId;  
+  inputElem.value = value;
+
+  var labelElem = document.createElement('label');
+  labelElem.htmlFor = groupId + choice;
+  labelElem.textContent = choice;
+
+  return [inputElem, labelElem];
+}
+
+/* Get selected options of 'scope' in 'list' as an object with a field for
+ * each chosen list item.
+ *
+ * The value is the text of the selected option (empty string if options 
+ * not present and box checked)
  *
  * Save current option settings to localStorage
  */
@@ -510,7 +560,20 @@ function getOptions(list, scope) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
       if (elem && elem.checked) {
-        checked[elem.name] = elem.name;
+        checked[elem.name] = "";
+      }
+      else if ('choices' in item) {
+        var value;
+        let name = 'id-' + _createHtmlId(scope + item.name);
+        var btns = document.getElementsByName(name);
+        btns.forEach(function (obj) {
+          if (obj.checked) {
+            value = obj.value;
+          }
+        });
+        if (value) {
+          checked[item.name] = value;
+        }
       }
     });
   }
@@ -519,22 +582,33 @@ function getOptions(list, scope) {
   return checked;
 }
 
-/* Override checked state from values previously saved in localStorage
+/* Override displayed values from values previously saved in localStorage
  */
 function overrideOptions(list, scope) {
   var checked = JSON.parse(localStorage.getItem(scope + 'settings'));
   if (list && checked) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
-        var elem = document.getElementById('id-' + idPart);
-        if (elem) {
-          elem.checked = (elem.name in checked);
+      var elem = document.getElementById('id-' + idPart);
+      if (elem) {
+        elem.checked = (elem.name in checked);
       }
+      else if ('choices' in item) {
+          let name = 'id-' + _createHtmlId(scope + item.name);
+          var btns = document.getElementsByName(name);
+          btns.forEach(function (obj) {
+            if (checked.choices == obj.value) {
+              obj.checked = true;
+            }
+          });
+        }
+      
     });
   }
 }
 
-/* Override checked state of all options of 'scope' in 'list' to 'isChecked'
+/* Override checked state of all non-choice items of 'scope' in 'list' to 
+ * 'isChecked'
  */
 function setAllOptions(list, scope, isChecked) {
   if (list) {
@@ -553,6 +627,7 @@ function _createHtmlId(value) {
   const id = value ? value.replace(/\W/g, '_') : '_';
   return id.charAt(0).match(/[\d_]/g)?.length ? `id_${id}` : id;
 }"use strict";
+// variables containing 'name's
 let nested = "Nested";
 let incomeExpense = "Income-Expense";
 let subtotal = "Subtotal";
@@ -585,6 +660,13 @@ let tableOptions = [
     'name': highlight, 'text': 'Highlight Concerns', 'description':
       'Highlight under-budget income and over-budget expenses'
   },
+  /*
+  {
+    'name': 'choices', 'text': 'Choices test', 'description':
+      'Test for choices implementation', 
+      'choices': ['A', 'B', 'C'], 'choiceNone' : 'None'
+  },
+  */
 ];
 
 let incomeCategories = "INCOME CATEGORIES";
@@ -1182,6 +1264,7 @@ textarea{
 .group {
   background-color: var(--group-background);
   border: 2px solid var(--border-color);
+  display:inline-flex;
   border-radius: 4px;
   padding: 4px;
   margin: 4px;
@@ -1199,6 +1282,13 @@ textarea{
   border-radius: 5px;
   float: left;
   width: 120px;
+  margin: 4px;
+}
+
+.containedbtn {
+  padding: 4px;
+  border-radius: 5px;
+  float: left;
   margin: 4px;
 }
 
@@ -1267,7 +1357,7 @@ p#tooltip-text:before {
           <option value="1">1</option>
           <option value="2">2</option>
         </select>
-      
+
         <label for="printed-on"> Print Date</label>
         <input id="printed-on" type="checkbox" checked>
 
@@ -1275,17 +1365,23 @@ p#tooltip-text:before {
       </span>
     </div>
     <p id="tooltip-text">The tooltip text.</p>
-    <div class="group">Columns<br><button onclick="setAllOptions(contentColumns[combinedName], 'col-', true);">Select
-        All</button>
+    <div class="group ">
+      <div class="containedbtn">Columns
+        <br><button onclick="setAllOptions(contentColumns[combinedName], 'col-', true);">Select:All</button>
+        <br><button onclick="setAllOptions(contentColumns[combinedName], 'col-', false);">Deselect:All</button>
+      </div>
       <div id="id-columns" class="container"></div>
-    </div>
-    <div class="group">Format<br><button onclick="setAllOptions(tableOptions, 'fmt-', true);">Select
-      All</button>
+    </div><br>
+    <div class="group ">
+      <div class="containedbtn">Format
+        <br><button onclick="setAllOptions(tableOptions, 'fmt-', true);">Select:All</button>
+        <br><button onclick="setAllOptions(tableOptions, 'fmt-', false);">Deselect:All</button>
+      </div>
       <div id="id-format" class="container"></div>
     </div>
 
-    <input type="button" onclick="showData()" value="(re)Display)">
-    <span id="revision" style="float:right"></span>
+    <P><input type="button" onclick="showData()" value="(re)Display)">
+    <span id="revision" style="float:right"></span></P>
   </div>
 
   <form id="id-data-form" action="">
