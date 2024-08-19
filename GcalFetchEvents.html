@@ -114,11 +114,11 @@
 
       thisContent = which;
       var formElem = document.getElementById('id-columns');
-      populateOptions(formElem, contentColumns[which], 'col-', true);
-      overrideOptions(contentColumns[which], 'col-');
+      populateOptions(formElem, contentColumns[which], which + '-col-', true);
+      overrideOptions(contentColumns[which], which + '-col-');
     }
     function getColumnOptions(which) {
-      return getOptions(contentColumns[which], 'col-');
+      return getOptions(contentColumns[which], which + '-col-');
     }
 
     // Creating and displaying the table
@@ -177,6 +177,14 @@
       showDataform();
     }
 
+    function defaultShowData() {
+      showData(
+              document.getElementById('id-content').value,
+              document.getElementById('id-data'), 
+              getFormatOptions(), 
+              getColumnOptions(document.getElementById('id-content').value),
+              detailForm)    }
+
     // Visibility
     function showDataform() {
       document.getElementById("id-data-form").style.display = "block";
@@ -224,7 +232,7 @@
     <div id="config">
       <input type="button" onclick="processGCal(events)" value="Calendar events" />
       <label for=" id-content"> Content:</label>
-      <select id="id-content" onchange="populateColumnOptions(this.value)"></select>
+      <select id="id-content" onchange="populateColumnOptions(this.value); defaultShowData()"></select>
 
       <label for="printed-on"> Print Date</label>
       <input id="printed-on" type="checkbox" checked>
@@ -245,12 +253,7 @@
       <div id="id-format" class="container"></div>
     </div>
     <br>
-    <input type="button" onclick="showData(
-              document.getElementById('id-content').value,
-              document.getElementById('id-data'), 
-              getFormatOptions(), 
-              getColumnOptions(document.getElementById('id-content').value),
-              detailForm)" value="(re)Display)">
+    <input type="button" onclick="defaultShowData()" value="(re)Display)">
     <span id="revision" style="float:right"></span>
   </div>
 
