@@ -11,8 +11,8 @@
   <script type="text/javascript" src="../data.json"></script>
   <script>
     // Title and revision
-    var title = 'XML / CSV Viewer';
-    var revision = '1.3';
+    var title = 'Calendar Event Detail Viewer';
+    var revision = '1.0';
 
     var revisionstring = title + ', Revision ' + revision;
     let noCsvHeader = false;
@@ -32,67 +32,6 @@
 
     /* Column names in selected content */
     let contentColumns = [];
-
-    // File reader
-    var reader = new FileReader();
-
-    function readFile(id) {
-      let input = document.getElementById(id);
-      var currentFile = input.files[0];
-      reader.readAsText(currentFile);
-
-      reader.onload = function () {
-        noCsvHeader = false;
-        if (currentFile.name.toLowerCase().endsWith(".csv")) {
-          processCsv(currentFile.name, reader.result)
-        }
-        else if (currentFile.name.toLowerCase().endsWith(".xml")) {
-          processXml(currentFile.name, reader.result)
-        }
-        else {
-          var selected = prompt("File must be 'csv' or 'xml'\nPlease specify type or cancel", "xml");
-          if (selected != null) {
-            selected = selected.toLowerCase();
-            if (selected.includes('csv')) {
-              processCsv(currentFile.name, reader.result)
-            }
-            else if (selected.includes('xml')) {
-              processXml(currentFile.name, reader.result)
-            }
-          }
-        }
-      };
-
-      reader.onerror = function () {
-        console.log(reader.error);
-      };
-    }
-
-    // Processing input data
-    function processCsv(filename, content) {
-      let objectElem = document.getElementById("id-object");
-      let contentElem = document.getElementById("id-content");
-      hideDataTable();
-      thisContent = decamelize(filename.replace(/\.[^/.]+$/, ""));
-      fileData = {};
-      let data;
-      let noHeaderElem = document.getElementById("id-no-header");
-      if (noHeaderElem && noHeaderElem.checked) {
-        data = d3.csvParseRows(content);
-        noCsvHeader = true;
-      }
-      else {
-        data = d3.csvParse(content);
-      }
-      fileData[thisContent] = data;
-      objectElem.textContent = "";
-      createColumnList(thisContent, Object.keys(data[0]));
-
-      contentElem.replaceChildren([]);
-      contentElem.add(new Option(thisContent, thisContent));
-
-      populateColumnOptions(thisContent);
-    }
 
     function processGCal(events) {
       let objectElem = document.getElementById("id-object");
@@ -158,83 +97,6 @@
       if (!(contentColumns[content].find(obj => obj['name'] === column))) {
         contentColumns[content].push({ 'name': column, 'text': column });
       }
-    }
-
-    function processXml(filename, content) {
-      let objectElem = document.getElementById("id-object");
-      let contentElem = document.getElementById("id-content");
-      hideDataTable();
-      var parser = new DOMParser();
-      var xmlDoc = parser.parseFromString(content, "text/xml");
-      let data = xmlToJson(xmlDoc);
-      fileData = {};
-
-      rootObject = Object.keys(data)[0];
-      objectElem.textContent = " - Object: " + rootObject;
-      data = data[rootObject];
-
-      contentElem.replaceChildren([]);
-      resolveParts(contentElem, '', data);
-      populateColumnOptions(contentElem.value);
-    }
-
-    /* (recursively) resolve the XML content so that all of the 
-       contents can be displayed using the table format
-     */
-    function resolveParts(contentElem, ancestor, data) {
-      let newObj;
-      let newName = 'Document';
-
-      for (var i = 0; i < Object.keys(data).length; ++i) {
-        let key = Object.keys(data)[i];
-        if (key !== '@attributes') {
-          let name = ancestor + key;
-          if (Array.isArray(data[key])) {
-            // An array is the normal expected
-            // content to be displayed in a table
-            fileData[name] = data[key];
-            contentElem.add(new Option(name, name));
-            createColumnList(name, Object.keys(data[key][0]));
-          }
-          else if (typeof (data[key]) === 'object') {
-            // A field may have sub-arrays, recurse
-            resolveParts(contentElem, name + ':', data[key]);
-          }
-          else {
-            // Otherwise synthesize fields into a new
-            // single element array (named Document if there 
-            // is no ancestor)
-            if (!newObj) {
-              newObj = {};
-              if (ancestor) {
-                newName = ancestor;
-              }
-              if (fileData[newName]) {
-                newObj = fileData[newName];
-              }
-              else {
-                fileData[newName] = [newObj];
-                contentElem.add(new Option(newName, newName));
-              }
-            }
-            newObj[key] = data[key];
-          }
-        }
-      }
-      if (newObj) {
-        // If an object was synthesized, create a columnlist for it
-        createColumnList(newName, Object.keys(newObj));
-      }
-    }
-
-    function createColumnList(name, columns) {
-      let list = [];
-      columns.forEach(function (column) {
-        if (column !== '@attributes') {
-          list.push({ 'name': column, 'text': column });
-        }
-      });
-      contentColumns[name] = list;
     }
 
     // Options
@@ -361,14 +223,6 @@
 
     <div id="config">
       <input type="button" onclick="processGCal(events)" value="Calendar events" />
-      <span class="input-span">
-        <input type="file" id="id-file" accept="text/csv,text/xml" onclick="type=''; type='file';"
-          onchange="readFile('id-file')">
-
-        <label for="id-no-header">No CSV header</label>
-        <input type="checkbox" id="id-no-header">
-      </span>
-
       <label for=" id-content"> Content:</label>
       <select id="id-content" onchange="populateColumnOptions(this.value)"></select>
 
@@ -386,10 +240,11 @@
         All</button>
       <div id="id-columns" class="container"></div>
     </div>
+    
     <div class="group">Format
       <div id="id-format" class="container"></div>
     </div>
-
+    <br>
     <input type="button" onclick="showData(
               document.getElementById('id-content').value,
               document.getElementById('id-data'), 
