@@ -440,7 +440,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
         // All but first column align right
         td.style.textAlign = 'right';
       }
-      if (blankZeros in options && value.trim() == '0') {
+      if (blankZeros in options && value && value.trim() == '0') {
         // Blank zero values
         value = '';
       }
