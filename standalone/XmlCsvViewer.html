@@ -296,7 +296,8 @@ Required CSS elements:
 
 /* Populate 'containerElem' with options from 'list' using 'scope' to qualify
    element ID's, and initializing state to 'isChecked'; excluding 'exclude' 
-   list members
+   list members. When an event handler is provided, it is connected to the 
+   checkboxes
 
    'list' is an array of objects containing 'name', 'text', and optional 'description'.
    If description is present, it is used for tooltip text.
@@ -306,7 +307,7 @@ Required CSS elements:
 
    Note that scope + name are transformed into valid HTML ID's
  */
-function populateOptions(containerElem, list, scope, isChecked, exclude = []) {
+function populateOptions(containerElem, list, scope, isChecked, exclude = [],  eventHandler = null) {
   containerElem.replaceChildren();
   if (list) {
     const tooltip = document.getElementById("tooltip-text");
@@ -359,6 +360,10 @@ function populateOptions(containerElem, list, scope, isChecked, exclude = []) {
 
           divElem.appendChild(inputElem);
           divElem.appendChild(labelElem);
+
+          if (eventHandler) {
+            inputElem.addEventListener("change", eventHandler);
+          }
         }
 
         containerElem.appendChild(divElem);
@@ -927,7 +932,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
         // All but first column align right
         td.style.textAlign = 'right';
       }
-      if (blankZeros in options && value.trim() == '0') {
+      if (blankZeros in options && value && value.trim() == '0') {
         // Blank zero values
         value = '';
       }
