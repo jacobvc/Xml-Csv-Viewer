@@ -6,9 +6,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.7';
+    var revision = '1.8';
 
-    var revisionstring = title + ', Revision ' + revision + ", 9/2024";
+    var revisionstring = title + ', Revision ' + revision + ", 10/2024";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -81,9 +81,11 @@
         let contentName = decamelize(filename.replace(/\.[^/.]+$/, ""));
         let data;
         data = d3.csvParse(content);
-        while (data[data.length - 1].Category.length == 0) {
-          // Remove any empty last rows
-          data.splice(data.length - 1, 1);
+        if ('Category' in data[0]) {
+          while (data[data.length - 1].Category.length == 0) {
+            // Remove any empty last rows
+            data.splice(data.length - 1, 1);
+          }
         }
         fileData[contentName] = data;
 
@@ -1390,7 +1392,8 @@ p#tooltip-text:before {
     </div>
 
     <P><input type="button" onclick="showData()" value="(re)Display)">
-    <span id="revision" style="float:right"></span></P>
+      <span id="revision" style="float:right"></span>
+    </P>
   </div>
 
   <form id="id-data-form" action="">
