@@ -790,14 +790,9 @@ function columnSubtract(first, second) {
   }
   else if (!isNaN(first) && first.length > 0) {
     let diff = Number(first) - Number(second);
-    if (diff) {
+    value = diff.toFixed(decimalPlaces);
+    if (Number(value)) {
       comparison = Math.sign(diff);
-    }
-    if (comparison == 0) {
-      value = '0';
-    }
-    else {
-      value = diff.toFixed(decimalPlaces);
     }
   }
   return { value, comparison };
