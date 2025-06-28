@@ -6,9 +6,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.9';
+    var revision = '1.10';
 
-    var revisionstring = title + ', Revision ' + revision + ", 3/2025";
+    var revisionstring = title + ', Revision ' + revision + ", 6/2025";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -163,9 +163,21 @@
     // Hide 'elemId' and go to print dialog, then unhide upon return
     function printHiding(elemId) {
       var elem = document.getElementById(elemId);
+      var footer = document.getElementById('footer')
       elem.style = "display: none";
-      print();
+      footer.style = "display: none";
+
+      var tempTitle = document.title;
+
+      try {
+        let name = document.getElementById('id-thismonth').files[0].name;
+        document.title = name.substring(0, name.length - 4);
+      } catch (error) {
+      }
+      window.print();
+      document.title = tempTitle;
       elem.style = "display: block";
+      footer.style = "display: block";
     }
 
     /* Process current and prior reports and generate a combined version
@@ -360,10 +372,10 @@
         elem.appendChild(titleElem);
 
         var instructions = document.createElement('p');
-        instructions.textContent
-          = 'This is the current row order. It may change if you "Choose File"'
-          + 'a Row Order file and "(re)Display\n\n'
-          + 'You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired';
+        instructions.innerHTML
+          = '<p>This is the current row order. It may change if you "Choose File"'
+          + ' a Row Order file and "(re)Display"</p>'
+          + '<p>You can copy this list and save it to a text file to create a new Row Order file, then reorder those contents as desired</p>';
         elem.appendChild(instructions);
 
         // Fill value with the categories
@@ -385,6 +397,32 @@
       else {
         alert("No content loaded");
       }
+    }
+
+    function about() {
+      var name = "rowOrder"
+      var elem = document.getElementById("dataFormId");
+      elem.replaceChildren();
+      var titleElem = document.createElement('h2');
+      titleElem.textContent = "About";
+      elem.appendChild(titleElem);
+
+      var instructions = document.createElement('p');
+      instructions.innerHTML
+        = `<p>This is a <a href="https://www.spiritofpeacecommunity.org"
+        target="_blank">Spirit of Peace</a> tool designed to enhance and
+        present ChurchTrac Budget Reports utilizing files created by 
+        exporting as CSV.</p>
+        <p>Look here for the <a href="ChurchTracBudgetReport.pdf"
+        target="_blank">user guide</a></p>
+        <p>If you find this useful, please consider <a 
+        href="https://spiritofpeace.churchtrac.com/give" target="_blank">contributing</a> to our 
+        ministries</p>
+        `;
+
+      elem.appendChild(instructions);
+
+      showDataform();
     }
 
     // Visibility
@@ -1152,7 +1190,7 @@ function sortTableRows(table, index, dir) {
   --border-color: black;
   --table-border-color: #ddd;
   --even-background: #ddd;
-  --field-background: #dcdcdc;
+  --field-background: cornsilk;
   --group-background: #eee;
   --contained-background: #fcfcfc;
   --thead-background: linear-gradient(#bbb, #ddd);
@@ -1218,6 +1256,9 @@ form {
   left: 50%;
   width: 75%;
   transform: translate(-50%, -50%);
+  overflow: hidden;
+  border: 6px solid black;
+  border-radius: 8px;
 }
 
 fieldset {
@@ -1331,6 +1372,16 @@ p#tooltip-text:before {
   to {
     opacity: 1;
   }
+}
+
+h1 {
+  background: var(--thead-background);
+  padding: 4px;
+}
+footer {
+  text-align: center;
+  padding: 3px;
+  background: var(--thead-background);
 }  </style>
 </head>
 
@@ -1384,10 +1435,9 @@ p#tooltip-text:before {
       <div id="id-format" class="container"></div>
     </div>
 
-    <P><input type="button" onclick="showData()" value="(re)Display)">
-
+    <P><input type="button" onclick="showData()" value="(re)Display">
       <input type="button" onclick="printHiding('config')" value="Hide Configuration and Print" />
-      <span id="revision" style="float:right"></span>
+      <input type="button" onclick="about()" value="About">
     </P>
   </div>
 
@@ -1398,7 +1448,16 @@ p#tooltip-text:before {
     </fieldset>
   </form>
   <div id="id-error" class="error"></div>
-  <div id="id-data"></div>
+  <div id="id-data"></div><br>
+
+  <footer id="footer">
+    <p><span id="revision"></span>
+      , Provided by <a href="https://www.spiritofpeacecommunity.org" target="_blank">Spirit of Peace</a>. Send questions
+      to
+      <a
+        href="mailto:vince@spiritofpeacecommunity.org?subject=ChurchTrac tool questions">vince@spiritofpeacecommunity.org</a>
+    </p>
+  </footer>
 </body>
 
 </html>

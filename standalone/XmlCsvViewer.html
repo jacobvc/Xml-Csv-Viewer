@@ -1052,7 +1052,7 @@ function xmlToJson(xml) {
   --border-color: black;
   --table-border-color: #ddd;
   --even-background: #ddd;
-  --field-background: #dcdcdc;
+  --field-background: cornsilk;
   --group-background: #eee;
   --contained-background: #fcfcfc;
   --thead-background: linear-gradient(#bbb, #ddd);
@@ -1118,6 +1118,9 @@ form {
   left: 50%;
   width: 75%;
   transform: translate(-50%, -50%);
+  overflow: hidden;
+  border: 6px solid black;
+  border-radius: 8px;
 }
 
 fieldset {
@@ -1231,6 +1234,16 @@ p#tooltip-text:before {
   to {
     opacity: 1;
   }
+}
+
+h1 {
+  background: var(--thead-background);
+  padding: 4px;
+}
+footer {
+  text-align: center;
+  padding: 3px;
+  background: var(--thead-background);
 }  </style>
 </head>
 
