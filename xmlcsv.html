@@ -10,7 +10,7 @@
   <script>
     // Title and revision
     var title = 'XML / CSV Viewer';
-    var revision = '1.3';
+    var revision = '1.4';
 
     var revisionstring = title + ', Revision ' + revision;
 	    let noCsvHeader = false;
@@ -163,7 +163,7 @@
       let list = [];
       columns.forEach(function (column) {
         if (column !== '@attributes') {
-          list.push({ 'name': column, 'text': column });
+          list.push({ 'name': column, 'label': column });
         }
       });
       contentColumns[name] = list;
@@ -201,7 +201,7 @@
       elem.style = "display: block";
     }
     function showData(which, elem, format, columns, onClick) {
-      hideDataform();
+      hidePopupForm();
       thisContent = which;
 
       var dodate = document.getElementById('printed-on');
@@ -242,30 +242,30 @@
 
     // Event handler (if onclick is specified in showData)
     function detailForm(src) {
-      var formElem = document.getElementById("dataFormId");
+      var formElem = document.getElementById("popupFormId");
       populateForm(src, thisContent, formElem);
-      showDataform();
+      showPopupForm();
     }
 
     // Visibility
-    function showDataform() {
-      document.getElementById("id-data-form").style.display = "block";
+    function showPopupForm() {
+      document.getElementById("id-popup-form").style.display = "block";
     }
-    function hideDataform() {
-      document.getElementById("id-data-form").style.display = "none";
+    function hidePopupForm() {
+      document.getElementById("id-popup-form").style.display = "none";
     }
 
     function showDataTable() {
       document.getElementById("id-data").style.display = "block";
     }
     function hideDataTable() {
-      hideDataform();
+      hidePopupForm();
       document.getElementById("id-data").style.display = "none";
     }
 
     // Form Load
     document.addEventListener('DOMContentLoaded', function () {
-      hideDataform();
+      hidePopupForm();
       populateFormatOptions('id-format');
       var elem = document.getElementById('pageheading');
       elem.value = localStorage.getItem(pageheadingSettings);
@@ -330,10 +330,10 @@
    <span id="revision" style="float:right"></span>
   </div>
 
-  <form id="id-data-form" action="">
-    <fieldset id="id-data-form">
-      <div id="dataFormId"></div>
-      <input style="padding: 6px; float: right" type="button" value="Close" onclick="hideDataform()">
+  <form id="id-popup-form" action="">
+    <fieldset id="id-popup-form-fs">
+      <div id="popupFormId"></div>
+      <input style="padding: 6px; float: right" type="button" value="Close" onclick="hidePopupForm()">
     </fieldset>
   </form>
   <div id="id-data"></div>

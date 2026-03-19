@@ -9,36 +9,33 @@ let highlight = "highlight";
 
 let tableOptions = [
   {
-    'name': incomeExpense, 'text': 'Indent inside Income/Expense rows',
+    'name': incomeExpense, 'label': 'Indent inside Income/Expense rows',
     'description': 'Ident all rows that do not start with "Income Category" or "Expense Category"'
   },
   {
-    'name': nested, 'text': 'Indent ":" separated categories',
+    'name': nested, 'label': 'Indent ":" separated categories',
     'description': 'Indent colon separated category names as a hierarchy'
   },
   {
-    'name': subtotal, 'text': 'Append Subtotals', 'description':
+    'name': subtotal, 'label': 'Append Subtotals', 'description':
       'Append subtotal rows (to indented numeric columns)'
   },
   {
-    'name': blankZeros, 'text': 'Blank zero values',
+    'name': blankZeros, 'label': 'Blank zero values',
     'description': 'Do not display values that are "0"'
   },
   {
-    'name': sorting, 'text': 'Sort columns', 'description':
+    'name': sorting, 'label': 'Sort columns', 'description':
       'Enable sorting by clicking column heading'
   },
   {
-    'name': highlight, 'text': 'Highlight Concerns', 'description':
-      'Highlight under-budget income and over-budget expenses'
+    'name': highlight, 'label': 'Highlight Concerns >=', 
+    'number': '10',
+    'append-text': '%',
+    //'text': 'Test Text',
+    //'choice': { 'choices': ['Test A', 'Test B'], 'default': 'Test B' },
+    'description': 'Highlight under-budget income and over-budget expenses'
   },
-  /*
-  {
-    'name': 'choices', 'text': 'Choices test', 'description':
-      'Test for choices implementation', 
-      'choices': ['A', 'B', 'C'], 'choiceNone' : 'None'
-  },
-  */
 ];
 
 let incomeCategories = "INCOME CATEGORIES";
@@ -191,7 +188,7 @@ function createTableColumns(data, table, columns, options) {
     thead.appendChild(tr);
   }
 
-  if (sorting in options) {
+  if (sorting in options && options[sorting].checked) {
     thead.addEventListener('click', function (e) {
       var t = e.target;
 
@@ -268,10 +265,10 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
   });
 
   var tdClass = {}
-  if (highlight in options) {
+  if (highlight in options && options[highlight].checked) {
     highlightGroups.forEach(function (group) {
       if (Number(subs[group[0]]) != 0) {
-        var result = columnSubtract(subs[group[0]], subs[group[1]]);
+        var result = columnSubtract(subs[group[0]], subs[group[1]], options[highlight].number);
         if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
           group.forEach(function (column) {
             tdClass[column] = 'highlight';
@@ -290,7 +287,8 @@ function appendNumericSubtotal(tr, indent, data, columns, start, end, highlightG
   });
 }
 
-function columnSubtract(first, second) {
+function columnSubtract(first, second, thresholdPct) {
+  let threshold = parseFloat(thresholdPct) / 100;
   let comparison = 0;
   let value = '';
   if (isNaN(second) || second.length == 0) {
@@ -301,6 +299,9 @@ function columnSubtract(first, second) {
     value = diff.toFixed(decimalPlaces);
     if (Number(value)) {
       comparison = Math.sign(diff);
+      if (threshold > 0 && Math.abs(diff) / Math.abs(Number(first)) < threshold) {
+        comparison = 0;
+      }
     }
   }
   return { value, comparison };
@@ -328,10 +329,10 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
     let colNum = 0;
 
     var tdClass = {}
-    if (highlight in options) {
+    if (highlight in options && options[highlight].checked) {
       highlightGroups.forEach(function (group) {
         if (Number(data[i][group[0]]) != 0) {
-          var result = columnSubtract(data[i][group[0]], data[i][group[1]]);
+          var result = columnSubtract(data[i][group[0]], data[i][group[1]], options[highlight].number);
           if ((result.comparison < 0 && doingExpense) || (result.comparison > 0 && !doingExpense)) {
             group.forEach(function (column) {
               tdClass[column] = 'highlight';
@@ -349,7 +350,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
       }
 
       if (colNum == 0) {
-        if (nested in options && typeof value == 'string') {
+        if (nested in options && options[nested].checked && typeof value == 'string') {
           if (value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
             // Doing expense now
             doingExpense = true;
@@ -372,7 +373,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
             // Append Subtotal for each 'ended' indent
             while (indent > firstDiff) {
               // Subtotal only if more than one line
-              if (subtotal in options && i - startRows[indent] > 1) {
+              if (subtotal in options && options[subtotal].checked && i - startRows[indent] > 1) {
                 appendNumericSubtotal(tr, rootIndent + indent, data, columns,
                   startRows[indent], i, highlightGroups, options);
                 frag.appendChild(tr);
@@ -416,7 +417,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
         }
 
         // Set rootIndent AFTER appending Subtotal using prior indentation
-        if (incomeExpense in options && typeof value == 'string'
+        if (incomeExpense in options && options[incomeExpense].checked && typeof value == 'string'
           && !value.toUpperCase().startsWith(incomeCategories.toUpperCase())
           && !value.toUpperCase().startsWith(expenseCategories.toUpperCase())) {
           // Indent inside income/expense
@@ -435,7 +436,7 @@ function addTableData(data, columns, showDetail, highlightGroups, options) {
         // All but first column align right
         td.style.textAlign = 'right';
       }
-      if (blankZeros in options && value && value.trim() == '0') {
+      if (blankZeros in options && options[blankZeros].checked && value && value.trim() == '0') {
         // Blank zero values
         value = '';
       }

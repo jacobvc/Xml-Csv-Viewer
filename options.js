@@ -21,15 +21,17 @@ Required CSS elements:
    list members. When an event handler is provided, it is connected to the 
    checkboxes
 
-   'list' is an array of objects containing 'name', 'text', and optional 'description'.
-   If description is present, it is used for tooltip text.
-
-   If optional 'choices' are specified, render selecable list of choices,
-   otherwise render checkbox.
+   'list' is an array of objects containing 'name', 'label', and OPTIONAL:
+      'choice': { 'choices': ['ch 0', .. 'ch n'], 'default': default_value }
+         render selectable list of choices.
+      'text': defult_text - text input box
+      'number': default_number - text input box for numeric input
+      'append-text' - text to append at end
+      'description' - used for tooltip text.
 
    Note that scope + name are transformed into valid HTML ID's
  */
-function populateOptions(containerElem, list, scope, isChecked, exclude = [],  eventHandler = null) {
+function populateOptions(containerElem, list, scope, isChecked, exclude = [], eventHandler = null) {
   containerElem.replaceChildren();
   if (list) {
     const tooltip = document.getElementById("tooltip-text");
@@ -41,51 +43,72 @@ function populateOptions(containerElem, list, scope, isChecked, exclude = [],  e
         divElem.id = "iddiv-" + idPart;
         divElem.className = "contained";
 
-        if ('choices' in item) {
-          var labelElem = document.createElement('label');
-          labelElem.textContent = item.text + '\n';
-          divElem.appendChild(labelElem);
+        var inputElem = document.createElement('input');
+        inputElem.type = 'checkbox';
+        inputElem.id = 'id-' + idPart;
+        inputElem.name = item.name;
+        inputElem.value = item.name;
+        inputElem.checked = isChecked;
 
-          var choiceNone = 'N/A';
-          if ('choiceNone' in item) {
-            choiceNone = item.choiceNone;
-          }
+        var labelElem = document.createTextNode(item.label + ' ');
 
-          var elements = CreateRadioButton('id-' + idPart, choiceNone, "");
-          elements[0].checked = true;
-          var div = document.createElement('div');
-          div.appendChild(elements[0]);
-          div.appendChild(elements[1]);
-          divElem.append(div);
+        divElem.appendChild(inputElem);
+        divElem.appendChild(labelElem);
 
-          //var anyChecked;
-          item.choices.forEach(function (choice) {
-            elements = CreateRadioButton('id-' + idPart, choice, choice);
-
-            div = document.createElement('div');
-            div.appendChild(elements[0]);
-            div.appendChild(elements[1]);
-            divElem.append(div);
-          });
+        if (eventHandler) {
+          inputElem.addEventListener("change", eventHandler);
         }
-        else {
-          var inputElem = document.createElement('input');
-          inputElem.type = 'checkbox';
-          inputElem.id = 'id-' + idPart;
-          inputElem.name = item.name;
-          inputElem.value = item.name;
-          inputElem.checked = isChecked;
 
-          var labelElem = document.createElement('label');
-          labelElem.htmlFor = 'id-' + idPart;
-          labelElem.textContent = item.text + '\n';
+        //
+        // OPTIONAL Choice input
+        //
+        if ('choice' in item && 'choices' in item.choice) {
+          var elements
 
-          divElem.appendChild(inputElem);
-          divElem.appendChild(labelElem);
+          if (item.choice.choices.length > 0) {
+            var dflt = null;
+            if ('default' in item.choice) {
+              dflt = item.choice.default;
+            }
+            item.choice.choices.forEach(function (choice) {
+              elements = CreateRadioButton('id-' + idPart + '_choice', choice, dflt);
 
-          if (eventHandler) {
-            inputElem.addEventListener("change", eventHandler);
+              var div = document.createElement('div');
+              div.appendChild(elements[0]);
+              div.appendChild(elements[1]);
+              divElem.append(div);
+            });
           }
+        }
+        //
+        // OPTIONAL Text input
+        //
+        if ('text' in item) {
+          var input = document.createElement("input");
+          input.type = 'text';
+          input.id = 'id-' + idPart + '_text';
+          input.value = item.text;
+
+          divElem.appendChild(input);
+        }
+
+        //
+        // OPTIONAL Number input
+        //
+        if ('number' in item) {
+          var input = document.createElement("input");
+          input.type = 'number';
+          input.id = 'id-' + idPart + '_number';
+          input.value = item.number;
+
+          divElem.appendChild(input);
+        }
+
+        //
+        // OPTIONAL Append text
+        //
+        if ('append-text' in item) {
+          divElem.appendChild(document.createTextNode(' ' + item['append-text'] + ' '));
         }
 
         containerElem.appendChild(divElem);
@@ -121,8 +144,11 @@ function CreateRadioButton(groupId, choice, value) {
   var inputElem = document.createElement('input');
   inputElem.type = 'radio';
   inputElem.id = groupId + choice;
-  inputElem.name = groupId;  
-  inputElem.value = value;
+  inputElem.name = groupId;
+  inputElem.value = choice;
+  if (choice === value) {
+    inputElem.checked = true;
+  }
 
   var labelElem = document.createElement('label');
   labelElem.htmlFor = groupId + choice;
@@ -140,55 +166,97 @@ function CreateRadioButton(groupId, choice, value) {
  * Save current option settings to localStorage
  */
 function getOptions(list, scope) {
-  let checked = {};
+  let opts = {};
   if (list) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
-      if (elem && elem.checked) {
-        checked[elem.name] = "";
-      }
-      else if ('choices' in item) {
-        var value;
-        let name = 'id-' + _createHtmlId(scope + item.name);
-        var btns = document.getElementsByName(name);
-        btns.forEach(function (obj) {
-          if (obj.checked) {
-            value = obj.value;
+      if (elem) {
+        opts[elem.name] = {};
+        if (elem.checked) {
+          opts[elem.name].checked = true;
+        }
+        if ('choice' in item && 'choices' in item.choice) {
+          //
+          // OPTIONAL Choice input
+          //
+          let name = 'id-' + _createHtmlId(scope + item.name + '_choice');
+          var btns = document.getElementsByName(name);
+          btns.forEach(function (obj) {
+            if (obj.checked) {
+              opts[name] = obj.value;
+            }
+          });
+        }
+        if ('text' in item) {
+          //
+          // OPTIONAL Text input
+          //
+          let id = 'id-' + idPart + '_text';
+          var txt = document.getElementById(id);
+          if (txt) {
+            opts[elem.name].text = txt.value;
           }
-        });
-        if (value) {
-          checked[item.name] = value;
+        }
+        if ('number' in item) {
+          //
+          // OPTIONAL Number input
+          //
+          let id = 'id-' + idPart + '_number';
+          var num = document.getElementById(id);
+          if (num) {
+            opts[elem.name].number = num.value;
+          }
         }
       }
     });
   }
-  localStorage.setItem(scope + 'settings', JSON.stringify(checked));
+  localStorage.setItem(scope + 'settings', JSON.stringify(opts));
 
-  return checked;
+  return opts;
 }
 
 /* Override displayed values from values previously saved in localStorage
  */
 function overrideOptions(list, scope) {
-  var checked = JSON.parse(localStorage.getItem(scope + 'settings'));
-  if (list && checked) {
+  var opts = JSON.parse(localStorage.getItem(scope + 'settings'));
+  if (list && opts) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
       if (elem) {
-        elem.checked = (elem.name in checked);
+        elem.checked = (elem.name in opts && opts[elem.name].checked);
       }
-      else if ('choices' in item) {
-          let name = 'id-' + _createHtmlId(scope + item.name);
-          var btns = document.getElementsByName(name);
-          btns.forEach(function (obj) {
-            if (checked.choices == obj.value) {
-              obj.checked = true;
-            }
-          });
+      if ('choice' in item && 'choices' in item.choice) {
+        //
+        // OPTIONAL Choice input
+        //
+        let name = 'id-' + _createHtmlId(scope + item.name + '_choice');
+        var ch = document.getElementById(name + opts[name]);
+        if (ch && opts[name]) {
+          ch.checked = true;
         }
-      
+      }
+      if ('text' in item) {
+        //
+        // OPTIONAL Text input
+        //
+        let id = 'id-' + idPart + '_text';
+        var txt = document.getElementById(id);
+        if (txt && id in opts) {
+          txt.value = opts[elem.name].text;
+        }
+      }
+      if ('number' in item) {
+        //
+        // OPTIONAL Number input
+        //
+        let id = 'id-' + idPart + '_number';
+        var num = document.getElementById(id);
+        if (num && id in opts) {
+          num.value = opts[elem.name].number;
+        }
+      }
     });
   }
 }

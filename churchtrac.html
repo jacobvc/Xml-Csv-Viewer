@@ -9,9 +9,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.10';
+    var revision = '1.11';
 
-    var revisionstring = title + ', Revision ' + revision + ", 6/2025";
+    var revisionstring = title + ', Revision ' + revision + ", 3/2026";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -100,14 +100,14 @@
           thisContent = contentName;
 
           let list1 = [];
-          list1.push({ 'name': 'Category', 'text': 'Category' });
+          list1.push({ 'name': 'Category', 'label': 'Category' });
           createColumnList(contentName, Object.keys(data[0]), list1);
 
           let list = [];
-          list.push({ 'name': 'Category', 'text': 'Category' });
-          list.push({ 'name': currentBudgetName, 'text': currentBudgetName });
-          list.push({ 'name': currentActualName, 'text': currentActualName });
-          list.push({ 'name': currentDifferenceName, 'text': currentDifferenceName });
+          list.push({ 'name': 'Category', 'label': 'Category' });
+          list.push({ 'name': currentBudgetName, 'label': currentBudgetName });
+          list.push({ 'name': currentActualName, 'label': currentActualName });
+          list.push({ 'name': currentDifferenceName, 'label': currentDifferenceName });
           createColumnList(combinedName, Object.keys(data[0]), list);
 
           let objectElem = document.getElementById("id-object");
@@ -126,7 +126,7 @@
     function createColumnList(name, columns, list) {
       columns.forEach(function (column) {
         if (column != 'Category') {
-          list.push({ 'name': column, 'text': column });
+          list.push({ 'name': column, 'label': column });
         }
       });
       contentColumns[name] = list;
@@ -271,7 +271,7 @@
 
       let err = document.getElementById('id-error');
       err.innerText = "";
-      hideDataform();
+      hidePopupForm();
 
       elem.replaceChildren();
 
@@ -334,9 +334,9 @@
 
     // Event handler (if onclick is specified in showData)
     function detailForm(src) {
-      var formElem = document.getElementById("dataFormId");
+      var formElem = document.getElementById("popupFormId");
       populateForm(src, thisContent, formElem);
-      showDataform();
+      showPopupForm();
     }
 
     // Make a popup with a textarea containing the category value
@@ -368,7 +368,7 @@
         }
         // Get the HTML element and create title / instructions
         var name = "rowOrder"
-        var elem = document.getElementById("dataFormId");
+        var elem = document.getElementById("popupFormId");
         elem.replaceChildren();
         var titleElem = document.createElement('h2');
         titleElem.textContent = "Budget Row Order";
@@ -395,7 +395,7 @@
 
         elem.appendChild(inputElem);
 
-        showDataform();
+        showPopupForm();
       }
       else {
         alert("No content loaded");
@@ -404,7 +404,7 @@
 
     function about() {
       var name = "rowOrder"
-      var elem = document.getElementById("dataFormId");
+      var elem = document.getElementById("popupFormId");
       elem.replaceChildren();
       var titleElem = document.createElement('h2');
       titleElem.textContent = "About";
@@ -425,28 +425,28 @@
 
       elem.appendChild(instructions);
 
-      showDataform();
+      showPopupForm();
     }
 
     // Visibility
-    function showDataform() {
-      document.getElementById("id-data-form").style.display = "block";
+    function showPopupForm() {
+      document.getElementById("id-popup-form").style.display = "block";
     }
-    function hideDataform() {
-      document.getElementById("id-data-form").style.display = "none";
+    function hidePopupForm() {
+      document.getElementById("id-popup-form").style.display = "none";
     }
 
     function showDataTable() {
       document.getElementById("id-data").style.display = "block";
     }
     function hideDataTable() {
-      hideDataform();
+      hidePopupForm();
       document.getElementById("id-data").style.display = "none";
     }
 
     // Form Load
     document.addEventListener('DOMContentLoaded', function () {
-      hideDataform();
+      hidePopupForm();
       populateFormatOptions('id-format');
       var elem = document.getElementById('pageheading');
       elem.value = localStorage.getItem(pageheadingSettings);
@@ -525,10 +525,10 @@
     </P>
   </div>
 
-  <form id="id-data-form" action="">
-    <fieldset id="id-data-form">
-      <div id="dataFormId"></div>
-      <input style="padding: 6px; float: right" type="button" value="Close" onclick="hideDataform()">
+  <form id="id-popup-form" action="">
+    <fieldset id="id-popup-form-fs">
+      <div id="popupFormId"></div>
+      <input style="padding: 6px; float: right" type="button" value="Close" onclick="hidePopupForm()">
     </fieldset>
   </form>
   <div id="id-error" class="error"></div>
