@@ -158,54 +158,58 @@ function CreateRadioButton(groupId, choice, value) {
 }
 
 /* Get selected options of 'scope' in 'list' as an object with a field for
- * each chosen list item.
+ * each chosen list item. Optionally only return checked items with 'onlyChecked' flag.
  *
  * The value is the text of the selected option (empty string if options 
  * not present and box checked)
  *
  * Save current option settings to localStorage
  */
-function getOptions(list, scope) {
+function getOptions(list, scope, onlyChecked = false) {
   let opts = {};
   if (list) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
       if (elem) {
-        opts[elem.name] = {};
+        var checked = false;
         if (elem.checked) {
-          opts[elem.name].checked = true;
+          checked = true;
         }
-        if ('choice' in item && 'choices' in item.choice) {
-          //
-          // OPTIONAL Choice input
-          //
-          let name = 'id-' + _createHtmlId(scope + item.name + '_choice');
-          var btns = document.getElementsByName(name);
-          btns.forEach(function (obj) {
-            if (obj.checked) {
-              opts[name] = obj.value;
-            }
-          });
-        }
-        if ('text' in item) {
-          //
-          // OPTIONAL Text input
-          //
-          let id = 'id-' + idPart + '_text';
-          var txt = document.getElementById(id);
-          if (txt) {
-            opts[elem.name].text = txt.value;
+        if (checked || !onlyChecked) {
+          opts[elem.name] = {};
+          opts[elem.name].checked = checked;
+          if ('choice' in item && 'choices' in item.choice) {
+            //
+            // OPTIONAL Choice input
+            //
+            let name = 'id-' + _createHtmlId(scope + item.name + '_choice');
+            var btns = document.getElementsByName(name);
+            btns.forEach(function (obj) {
+              if (obj.checked) {
+                opts[name] = obj.value;
+              }
+            });
           }
-        }
-        if ('number' in item) {
-          //
-          // OPTIONAL Number input
-          //
-          let id = 'id-' + idPart + '_number';
-          var num = document.getElementById(id);
-          if (num) {
-            opts[elem.name].number = num.value;
+          if ('text' in item) {
+            //
+            // OPTIONAL Text input
+            //
+            let id = 'id-' + idPart + '_text';
+            var txt = document.getElementById(id);
+            if (txt) {
+              opts[elem.name].text = txt.value;
+            }
+          }
+          if ('number' in item) {
+            //
+            // OPTIONAL Number input
+            //
+            let id = 'id-' + idPart + '_number';
+            var num = document.getElementById(id);
+            if (num) {
+              opts[elem.name].number = num.value;
+            }
           }
         }
       }

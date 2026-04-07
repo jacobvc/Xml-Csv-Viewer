@@ -6,9 +6,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.11';
+    var revision = '1.12';
 
-    var revisionstring = title + ', Revision ' + revision + ", 3/2026";
+    var revisionstring = title + ', Revision ' + revision + ", 4/2026";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -146,7 +146,7 @@
       overrideOptions(contentColumns[which], 'col-');
     }
     function getColumnOptions(which) {
-      return getOptions(contentColumns[which], 'col-');
+      return getOptions(contentColumns[which], 'col-', true);
     }
 
     function newDataElement(columns, category) {
@@ -628,47 +628,51 @@ function CreateRadioButton(groupId, choice, value) {
  *
  * Save current option settings to localStorage
  */
-function getOptions(list, scope) {
+function getOptions(list, scope, onlyChecked = false) {
   let opts = {};
   if (list) {
     list.forEach(function (item) {
       let idPart = _createHtmlId(scope + item.name);
       var elem = document.getElementById('id-' + idPart);
       if (elem) {
-        opts[elem.name] = {};
+        var checked = false;
         if (elem.checked) {
-          opts[elem.name].checked = true;
+          checked = true;
         }
-        if ('choice' in item && 'choices' in item.choice) {
-          //
-          // OPTIONAL Choice input
-          //
-          let name = 'id-' + _createHtmlId(scope + item.name + '_choice');
-          var btns = document.getElementsByName(name);
-          btns.forEach(function (obj) {
-            if (obj.checked) {
-              opts[name] = obj.value;
-            }
-          });
-        }
-        if ('text' in item) {
-          //
-          // OPTIONAL Text input
-          //
-          let id = 'id-' + idPart + '_text';
-          var txt = document.getElementById(id);
-          if (txt) {
-            opts[elem.name].text = txt.value;
+        if (checked || !onlyChecked) {
+          opts[elem.name] = {};
+          opts[elem.name].checked = checked;
+          if ('choice' in item && 'choices' in item.choice) {
+            //
+            // OPTIONAL Choice input
+            //
+            let name = 'id-' + _createHtmlId(scope + item.name + '_choice');
+            var btns = document.getElementsByName(name);
+            btns.forEach(function (obj) {
+              if (obj.checked) {
+                opts[name] = obj.value;
+              }
+            });
           }
-        }
-        if ('number' in item) {
-          //
-          // OPTIONAL Number input
-          //
-          let id = 'id-' + idPart + '_number';
-          var num = document.getElementById(id);
-          if (num) {
-            opts[elem.name].number = num.value;
+          if ('text' in item) {
+            //
+            // OPTIONAL Text input
+            //
+            let id = 'id-' + idPart + '_text';
+            var txt = document.getElementById(id);
+            if (txt) {
+              opts[elem.name].text = txt.value;
+            }
+          }
+          if ('number' in item) {
+            //
+            // OPTIONAL Number input
+            //
+            let id = 'id-' + idPart + '_number';
+            var num = document.getElementById(id);
+            if (num) {
+              opts[elem.name].number = num.value;
+            }
           }
         }
       }

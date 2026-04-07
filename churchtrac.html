@@ -9,9 +9,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.11';
+    var revision = '1.12';
 
-    var revisionstring = title + ', Revision ' + revision + ", 3/2026";
+    var revisionstring = title + ', Revision ' + revision + ", 4/2026";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -149,7 +149,8 @@
       overrideOptions(contentColumns[which], 'col-');
     }
     function getColumnOptions(which) {
-      return getOptions(contentColumns[which], 'col-');
+      // Get 'which' content column options (only the checked ones)
+      return getOptions(contentColumns[which], 'col-', true);
     }
 
     function newDataElement(columns, category) {
