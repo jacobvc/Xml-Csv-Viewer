@@ -111,6 +111,10 @@ textarea{
 .error {
   color: red;
 }
+.warning {
+  color: orange;
+  font-weight: bold;
+}
 
 .input-span {
   display: inline-block;

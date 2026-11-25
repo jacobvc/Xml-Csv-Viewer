@@ -9,9 +9,9 @@
   <script>
     // Title and revision
     var title = 'ChurchTrac Budget Report Tool'
-    var revision = '1.12';
+    var revision = '2.0';
 
-    var revisionstring = title + ', Revision ' + revision + ", 4/2026";
+    var revisionstring = title + ', Revision ' + revision + ", 11/2026";
 
     // String constants for spelling consistency
     var combinedName = 'combined';
@@ -19,7 +19,7 @@
     var currentActualName = '* Current Actual';
     var currentDifferenceName = '* Current Difference';
     var ytdBudgetName = 'YTD Budget';
-    var ytdActualName = 'YTD Actual';
+    var ytdActualName = 'Actual';
     var ytdDiffrenceName = 'YTD Difference';
 
     // Highlight groups - Arrays of [budget column, actual column, related columns ..]
@@ -477,6 +477,9 @@
     </h1>
 
     <div id="config">
+      <span class="input-span warning">
+      Warning: This tool is designed to work with ChurchTrac Reports exported as CSV files after 11/15/2026. Use legacy version for files exported earlier
+      </span>
       <span class="input-span">
         This Month <input type="file" id="id-thismonth" style="width:303px;" accept="text/csv"
           onclick="type=''; type='file';" onchange="readFile('id-thismonth', false)">
